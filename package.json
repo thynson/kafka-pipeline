@@ -1,0 +1,24 @@
+{
+  "name": "kafka-pipeline",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "peerDependencies": {
+    "kafka-node": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^23.3.1",
+    "@types/kafka-node": "^2.0.7",
+    "jest": "^23.5.0",
+    "kafka-node": "^2.6.1"
+  },
+  "dependencies": {
+    "bluebird": "^3.5.2",
+    "debug": "^3.1.0"
+  }
+}
