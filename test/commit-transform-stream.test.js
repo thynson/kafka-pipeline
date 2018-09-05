@@ -21,32 +21,36 @@ describe('CommitTransformStream', () => {
   });
 
   test('Commit error', async () => {
-    const commitInterval = 1;
+    const commitInterval = 10;
     // jest.fn().mockRejectedValue() seems to be buggy
     const commitFunction = jest.fn().mockImplementation(() => {
-      return new Bluebird((done, fail) => {
+      return new Promise((done, fail) => {
         setTimeout(() => {
           fail(new Error());
-        }, 5);
+        }, 50);
       });
     });
 
     const cts = new CommitTransformStream({commitInterval, commitFunction});
     const onErrorSpy = jest.fn();
     cts.on('error', onErrorSpy);
+    const transformSpy = jest.spyOn(cts, '_transform');
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
+    expect(transformSpy).toHaveBeenCalled();
     expect(onErrorSpy).not.toHaveBeenCalled();
-    await delay(2);
+    await delay(10);
+    expect(commitFunction).toHaveBeenCalled();
     expect(onErrorSpy).not.toHaveBeenCalled();
+    await delay(50);
     expect(commitFunction).toHaveBeenCalledTimes(1);
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 1}, done));
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 3}, done));
 
-    await delay(10);
+    await delay(50);
     expect(commitFunction).toHaveBeenCalledTimes(1);
     expect(onErrorSpy).toHaveBeenCalledTimes(1);
     await Bluebird.fromCallback((done) => cts.write({offset: 3, topic: 'test', partition: 2}, done));
-    await delay(10);
+    await delay(50);
     expect(onErrorSpy).toHaveBeenCalledTimes(1);
     expect(commitFunction).toHaveBeenCalledTimes(1);
   });

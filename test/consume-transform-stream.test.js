@@ -6,7 +6,7 @@ const Bluebird = require('bluebird');
 const {Transform} = require('stream');
 const delay = require('./lib/delay');
 
-function createConsumer(option) {
+function createConsumer(option = {}) {
   return new ConsumeTransformStream(Object.assign({}, {
     consumeTimeout: 5000,
     consumeConcurrency: 8,
@@ -30,25 +30,61 @@ function createMessage(option) {
 describe('ConsumeTransformStream', () => {
 
 
+  test('Close immediately', (callback) => {
+    const stream = createConsumer();
+    stream.on('end', () => {
+      callback();
+    }).resume().end();
+  });
+
+  test('concurrency = 1', async () => {
+    const messageConsumer = jest.fn().mockImplementation(() => {
+      return new Promise((done) => {
+        setTimeout(() => {
+          done();
+        }, 10);
+      });
+    });
+    const stream = createConsumer({messageConsumer, consumeConcurrency: 1});
+    expect(stream.write(createMessage({offset: 1}))).toBeTruthy();
+    expect(stream.write(createMessage({offset: 2}))).toBeFalsy();
+    expect(messageConsumer).toHaveBeenCalledTimes(1);
+    await delay(10);
+    expect(messageConsumer).toHaveBeenCalledTimes(2);
+    await delay(10);
+    await new Promise((done) => {
+      stream.on('end', () => {
+        done();
+      }).resume().end();
+    });
+  });
+
   test('output order should be same with input order', async () => {
     const message1 = createMessage({offset: 1});
     const message2 = createMessage({offset: 2});
     const message3 = createMessage({offset: 3});
-    const messageConsumer = (message) => {
+    const messageConsumer = jest.fn().mockImplementation((message) => {
       return new Promise((done) => setTimeout(done, 5 - message.offset));
-    };
+    });
     const stream = createConsumer({messageConsumer, consumeConcurrency: 2});
     const onDataSpy = jest.fn();
     stream.on('data', onDataSpy);
+    // Ensure first two message be "transformed"
     await Bluebird.fromCallback((done) => stream.write(message1, done));
     await Bluebird.fromCallback((done) => stream.write(message2, done));
-    await Bluebird.fromCallback((done) => stream.write(message3, done));
+    // Don't await the third message, as it won't be actually transformed
+    // until one of first two have been consumed, as consumeConcurrency is 2
+    stream.write(message3);
 
+    // expect(messageConsumer).toHaveBeenCalledTimes(2);
     await delay(3);
-    expect(onDataSpy).not.toHaveBeenCalled();
+    expect(onDataSpy).toHaveBeenCalledTimes(0);
     await delay(1);
+    // message1 takes 4ms to consume
     expect(onDataSpy).toHaveBeenNthCalledWith(1, message1);
+    // message2 takes 3ms to consume, so already be consumed
     expect(onDataSpy).toHaveBeenNthCalledWith(2, message2);
+    expect(onDataSpy).toHaveBeenCalledTimes(2);
     await delay(1);
     expect(onDataSpy).toHaveBeenNthCalledWith(3, message3);
     await Bluebird.fromCallback((callback) => {
@@ -59,18 +95,82 @@ describe('ConsumeTransformStream', () => {
     });
   });
 
-  test('consume error without error collector', (callback) => {
-    const message1 = createMessage({offset: 1});
+  test('consume timeout', async () => {
     const messageConsumer = () => {
-      return new Promise((done, fail) => setImmediate(() => fail(new Error())));
+      return new Promise(() => null);
     };
-    const stream = createConsumer({messageConsumer, failedMessageConsumer: null});
-
-    stream.on('error', () => {
-      callback();
+    const failedMessageConsumer = jest.fn().mockImplementation(() => {
+      return new Promise((done) => setImmediate(() => done()));
     });
-    stream.end(message1);
+    const stream = createConsumer({messageConsumer, failedMessageConsumer, consumeConcurrency: 2, consumeTimeout: 10});
+
+    await Bluebird.fromCallback((done) => stream.write(createMessage({offset: 1}), done));
+    await Bluebird.fromCallback((done) => stream.write(createMessage({offset: 2}), done));
+    stream.end(createMessage({offset: 3}));
+    await delay(10);
+    expect(failedMessageConsumer).toHaveBeenCalledTimes(2);
+    await delay(10);
+    expect(failedMessageConsumer).toHaveBeenCalledTimes(3);
   });
+
+  test('consume error without error collector', async () => {
+    const messageConsumer = jest.fn().mockImplementation(({offset}) => {
+      return new Promise((done, fail) => {
+        setTimeout(() => {
+          if (offset === 2) {
+            fail(new Error());
+          }
+          done();
+        }, offset);
+      });
+    });
+    const stream = createConsumer({
+      messageConsumer,
+      failedMessageConsumer: null,
+      consumeConcurrency: 2
+    });
+
+    stream.on('error', jest.fn());
+    await Bluebird.fromCallback((done) => stream.write(createMessage({offset: 1}), done));
+
+    await Bluebird.fromCallback((done) => stream.write(createMessage({offset: 2}), done));
+    expect(messageConsumer).toHaveBeenCalledTimes(2);
+    await delay(2);
+    await Bluebird.fromCallback((done)=> stream.write(createMessage({offset: 3}), done));
+    expect(messageConsumer).toHaveBeenCalledTimes(2);
+  });
+  test('consume error when flush without error collector', async () => {
+    const messageConsumer = jest.fn().mockImplementation(({offset}) => {
+      return new Promise((done, fail) => {
+        setTimeout(() => {
+          if (offset === 2) {
+            fail(new Error());
+          }
+          done();
+        }, offset);
+      });
+    });
+    const stream = createConsumer({
+      messageConsumer,
+      failedMessageConsumer: null,
+      consumeConcurrency: 1
+    });
+
+    await Bluebird.fromCallback((done) => stream.write(createMessage({offset: 1}), done));
+
+    stream.end(createMessage({offset: 2}));
+    expect(messageConsumer).toHaveBeenCalledTimes(1);
+    await delay(1);
+    expect(messageConsumer).toHaveBeenCalledTimes(2);
+    await new Promise((done)=> {
+      stream.on('error', async ()=> {
+        setImmediate(done);
+      });
+      jest.runAllTimers();
+    });
+    await delay(100);
+  });
+
   test('consume error with failed message consumer', (callback) => {
     const message1 = {offset: 1};
     const message2 = {offset: 2};
@@ -86,9 +186,6 @@ describe('ConsumeTransformStream', () => {
     const stream = createConsumer({messageConsumer, consumeConcurrency: 2, failedMessageConsumer});
     const onDataSpy = jest.fn();
     stream.on('data', onDataSpy);
-    stream.write(message1);
-    stream.write(message2);
-    stream.end(message3);
     stream.on('end', () => {
       expect(failedMessageConsumer).toHaveBeenCalledTimes(3);
       expect(failedMessageConsumer).toHaveBeenNthCalledWith(1, error1, message1);
@@ -100,5 +197,8 @@ describe('ConsumeTransformStream', () => {
       expect(onDataSpy).toHaveBeenNthCalledWith(3, message3);
       callback();
     });
+    stream.write(message1);
+    stream.write(message2);
+    stream.end(message3);
   });
 });
