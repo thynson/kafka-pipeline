@@ -3,6 +3,7 @@
 jest.useFakeTimers();
 const {CommitTransformStream} = require('../lib/commit-transform-stream');
 const Bluebird = require('bluebird');
+const delay = require('./lib/delay');
 
 describe('CommitTransformStream', () => {
 
@@ -35,29 +36,17 @@ describe('CommitTransformStream', () => {
     cts.on('error', onErrorSpy);
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
     expect(onErrorSpy).not.toHaveBeenCalled();
-    await new Promise((done) => {
-      setTimeout(done, 2);
-      jest.advanceTimersByTime(2);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(2);
     expect(onErrorSpy).not.toHaveBeenCalled();
     expect(commitFunction).toHaveBeenCalledTimes(1);
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 1}, done));
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 3}, done));
 
-    await new Promise((done) => {
-      setTimeout(done, 10);
-      jest.advanceTimersByTime(10);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(10);
     expect(commitFunction).toHaveBeenCalledTimes(1);
     expect(onErrorSpy).toHaveBeenCalledTimes(1);
     await Bluebird.fromCallback((done) => cts.write({offset: 3, topic: 'test', partition: 2}, done));
-    await new Promise((done) => {
-      setTimeout(done, 10);
-      jest.advanceTimersByTime(10);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(10);
     expect(onErrorSpy).toHaveBeenCalledTimes(1);
     expect(commitFunction).toHaveBeenCalledTimes(1);
   });
@@ -83,18 +72,10 @@ describe('CommitTransformStream', () => {
     const cts = new CommitTransformStream({commitInterval, commitFunction});
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
     await Bluebird.fromCallback((done) => cts.write({offset: 100, topic: 'test', partition: 1}, done));
-    await new Promise((done) => {
-      setTimeout(done, 400);
-      jest.advanceTimersByTime(400);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(400);
 
     expect(commitFunction).not.toHaveBeenCalled();
-    await new Promise((done) => {
-      setTimeout(done, 100);
-      jest.advanceTimersByTime(100);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(100);
     expect(commitFunction).toHaveBeenNthCalledWith(1, expect.arrayContaining([
       expect.objectContaining({
         offset: 2,
@@ -107,11 +88,7 @@ describe('CommitTransformStream', () => {
       })
     ]));
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 0}, done));
-    await new Promise((done) => {
-      setTimeout(done, 600);
-      jest.advanceTimersByTime(600);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(600);
     expect(commitFunction).toHaveBeenNthCalledWith(2, [
       expect.objectContaining({
         offset: 3,
@@ -127,17 +104,9 @@ describe('CommitTransformStream', () => {
 
     const cts = new CommitTransformStream({commitInterval, commitFunction});
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
-    await new Promise((done) => {
-      setTimeout(done, 499);
-      jest.advanceTimersByTime(499);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(499);
     expect(commitFunction).not.toHaveBeenCalled();
-    await new Promise((done) => {
-      setTimeout(done, 2);
-      jest.advanceTimersByTime(2);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(1);
     expect(commitFunction).toHaveBeenNthCalledWith(1, expect.arrayContaining([
       expect.objectContaining({
         offset: 2,
@@ -189,19 +158,11 @@ describe('CommitTransformStream', () => {
     });
     const cts = new CommitTransformStream({commitInterval, commitFunction});
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
-    await new Promise((done) => {
-      setTimeout(done, 500);
-      jest.advanceTimersByTime(500);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(500);
     expect(commitFunction).toHaveBeenCalledTimes(1);
     const promise = cts._currentCommitPromise;
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 0}, done));
-    await new Promise((done) => {
-      setTimeout(done, 500);
-      jest.advanceTimersByTime(500);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(500);
     expect(commitFunction).toHaveBeenCalledTimes(1);
     commitCallback();
     await promise;

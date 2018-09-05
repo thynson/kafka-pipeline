@@ -4,6 +4,7 @@ jest.useFakeTimers();
 const {ConsumeTransformStream} = require('../lib/consume-transform-stream');
 const Bluebird = require('bluebird');
 const {Transform} = require('stream');
+const delay = require('./lib/delay');
 
 function createConsumer(option) {
   return new ConsumeTransformStream(Object.assign({}, {
@@ -43,24 +44,12 @@ describe('ConsumeTransformStream', () => {
     await Bluebird.fromCallback((done) => stream.write(message2, done));
     await Bluebird.fromCallback((done) => stream.write(message3, done));
 
-    await new Bluebird((done) => {
-      setTimeout(done, 3);
-      jest.advanceTimersByTime(3);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(3);
     expect(onDataSpy).not.toHaveBeenCalled();
-    await new Bluebird((done) => {
-      setTimeout(done, 1);
-      jest.advanceTimersByTime(1);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(1);
     expect(onDataSpy).toHaveBeenNthCalledWith(1, message1);
     expect(onDataSpy).toHaveBeenNthCalledWith(2, message2);
-    await new Bluebird((done) => {
-      setTimeout(done, 1);
-      jest.advanceTimersByTime(1);
-      jest.runOnlyPendingTimers();
-    });
+    await delay(1);
     expect(onDataSpy).toHaveBeenNthCalledWith(3, message3);
     await Bluebird.fromCallback((callback) => {
       stream.on('end', () => {
