@@ -1,12 +1,15 @@
 # kafka-pipeline
 
-## About this library
+This library provide a robust, easy to use kafka message consumer based on 
+`ConsumerGroup` from [kafka-node] that helps you managing message offsets 
+in correct way.
 
-`ConsumerGroupStream` from [kafka-node] when configured with 
-`autoCommit: false`, which means it is hard to implement at-least-once 
-guarantee with it. This library provide a robust, easy to use kafka message 
-consumer based on `ConsumerGroup` from [kafka-node] that helps you managing 
-message offsets in correct way.
+The basic idea behind this library is separate consume progress and offset
+commit into two [Transform] stream. While this idea is originate from 
+`ConsumerGroupStream` from [kafka-node], it's buggy when you try to use it
+with offset being managed by yourself, which prevents you from implementing
+a reliable message consumer that meets guarantee that each message shloud be
+consumed at least once.
 
 Even if you don't care about at-least-once guarantee at all, 
 `ConsumerGroupStream` duplicates a lot of message after rebalance. Although 
@@ -55,3 +58,5 @@ ISC License, see `LICENSE` file.
 1. More test
 2. Consider support HighLevelConsumer?
 
+[kafka-node]: https://github.com/SOHU-Co/kafka-node
+[Transform]: https://nodejs.org/api/stream.html#stream_class_stream_transform
