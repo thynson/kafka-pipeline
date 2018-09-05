@@ -3,7 +3,7 @@
 jest.useFakeTimers();
 const {CommitTransformStream} = require('../lib/commit-transform-stream');
 const Bluebird = require('bluebird');
-const delay = require('./lib/delay');
+const fakeSleep = require('./lib/fake-sleep');
 
 describe('CommitTransformStream', () => {
 
@@ -38,19 +38,19 @@ describe('CommitTransformStream', () => {
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
     expect(transformSpy).toHaveBeenCalled();
     expect(onErrorSpy).not.toHaveBeenCalled();
-    await delay(10);
+    await fakeSleep(10);
     expect(commitFunction).toHaveBeenCalled();
     expect(onErrorSpy).not.toHaveBeenCalled();
-    await delay(50);
+    await fakeSleep(50);
     expect(commitFunction).toHaveBeenCalledTimes(1);
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 1}, done));
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 3}, done));
 
-    await delay(50);
+    await fakeSleep(50);
     expect(commitFunction).toHaveBeenCalledTimes(1);
     expect(onErrorSpy).toHaveBeenCalledTimes(1);
     await Bluebird.fromCallback((done) => cts.write({offset: 3, topic: 'test', partition: 2}, done));
-    await delay(50);
+    await fakeSleep(50);
     expect(onErrorSpy).toHaveBeenCalledTimes(1);
     expect(commitFunction).toHaveBeenCalledTimes(1);
   });
@@ -76,10 +76,10 @@ describe('CommitTransformStream', () => {
     const cts = new CommitTransformStream({commitInterval, commitFunction});
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
     await Bluebird.fromCallback((done) => cts.write({offset: 100, topic: 'test', partition: 1}, done));
-    await delay(400);
+    await fakeSleep(400);
 
     expect(commitFunction).not.toHaveBeenCalled();
-    await delay(100);
+    await fakeSleep(100);
     expect(commitFunction).toHaveBeenNthCalledWith(1, expect.arrayContaining([
       expect.objectContaining({
         offset: 2,
@@ -92,7 +92,7 @@ describe('CommitTransformStream', () => {
       })
     ]));
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 0}, done));
-    await delay(600);
+    await fakeSleep(600);
     expect(commitFunction).toHaveBeenNthCalledWith(2, [
       expect.objectContaining({
         offset: 3,
@@ -108,9 +108,9 @@ describe('CommitTransformStream', () => {
 
     const cts = new CommitTransformStream({commitInterval, commitFunction});
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
-    await delay(499);
+    await fakeSleep(499);
     expect(commitFunction).not.toHaveBeenCalled();
-    await delay(1);
+    await fakeSleep(1);
     expect(commitFunction).toHaveBeenNthCalledWith(1, expect.arrayContaining([
       expect.objectContaining({
         offset: 2,
@@ -162,11 +162,11 @@ describe('CommitTransformStream', () => {
     });
     const cts = new CommitTransformStream({commitInterval, commitFunction});
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
-    await delay(500);
+    await fakeSleep(500);
     expect(commitFunction).toHaveBeenCalledTimes(1);
     const promise = cts._currentCommitPromise;
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 0}, done));
-    await delay(500);
+    await fakeSleep(500);
     expect(commitFunction).toHaveBeenCalledTimes(1);
     commitCallback();
     await promise;

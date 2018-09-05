@@ -3,8 +3,7 @@ jest.useFakeTimers();
 
 const {ConsumeTransformStream} = require('../lib/consume-transform-stream');
 const Bluebird = require('bluebird');
-const {Transform} = require('stream');
-const delay = require('./lib/delay');
+const fakeSleep = require('./lib/fake-sleep');
 
 function createConsumer(option = {}) {
   return new ConsumeTransformStream(Object.assign({}, {
@@ -49,9 +48,9 @@ describe('ConsumeTransformStream', () => {
     expect(stream.write(createMessage({offset: 1}))).toBeTruthy();
     expect(stream.write(createMessage({offset: 2}))).toBeFalsy();
     expect(messageConsumer).toHaveBeenCalledTimes(1);
-    await delay(10);
+    await fakeSleep(10);
     expect(messageConsumer).toHaveBeenCalledTimes(2);
-    await delay(10);
+    await fakeSleep(10);
     await new Promise((done) => {
       stream.on('end', () => {
         done();
@@ -77,15 +76,15 @@ describe('ConsumeTransformStream', () => {
     stream.write(message3);
 
     // expect(messageConsumer).toHaveBeenCalledTimes(2);
-    await delay(3);
+    await fakeSleep(3);
     expect(onDataSpy).toHaveBeenCalledTimes(0);
-    await delay(1);
+    await fakeSleep(1);
     // message1 takes 4ms to consume
     expect(onDataSpy).toHaveBeenNthCalledWith(1, message1);
     // message2 takes 3ms to consume, so already be consumed
     expect(onDataSpy).toHaveBeenNthCalledWith(2, message2);
     expect(onDataSpy).toHaveBeenCalledTimes(2);
-    await delay(1);
+    await fakeSleep(1);
     expect(onDataSpy).toHaveBeenNthCalledWith(3, message3);
     await Bluebird.fromCallback((callback) => {
       stream.on('end', () => {
@@ -107,9 +106,9 @@ describe('ConsumeTransformStream', () => {
     await Bluebird.fromCallback((done) => stream.write(createMessage({offset: 1}), done));
     await Bluebird.fromCallback((done) => stream.write(createMessage({offset: 2}), done));
     stream.end(createMessage({offset: 3}));
-    await delay(10);
+    await fakeSleep(10);
     expect(failedMessageConsumer).toHaveBeenCalledTimes(2);
-    await delay(10);
+    await fakeSleep(10);
     expect(failedMessageConsumer).toHaveBeenCalledTimes(3);
   });
 
@@ -135,7 +134,7 @@ describe('ConsumeTransformStream', () => {
 
     await Bluebird.fromCallback((done) => stream.write(createMessage({offset: 2}), done));
     expect(messageConsumer).toHaveBeenCalledTimes(2);
-    await delay(2);
+    await fakeSleep(2);
     await Bluebird.fromCallback((done)=> stream.write(createMessage({offset: 3}), done));
     expect(messageConsumer).toHaveBeenCalledTimes(2);
   });
@@ -160,7 +159,7 @@ describe('ConsumeTransformStream', () => {
 
     stream.end(createMessage({offset: 2}));
     expect(messageConsumer).toHaveBeenCalledTimes(1);
-    await delay(1);
+    await fakeSleep(1);
     expect(messageConsumer).toHaveBeenCalledTimes(2);
     await new Promise((done)=> {
       stream.on('error', async ()=> {
@@ -168,7 +167,7 @@ describe('ConsumeTransformStream', () => {
       });
       jest.runAllTimers();
     });
-    await delay(100);
+    await fakeSleep(100);
   });
 
   test('consume error with failed message consumer', (callback) => {
