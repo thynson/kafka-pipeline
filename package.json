@@ -1,6 +1,6 @@
 {
   "name": "kafka-pipeline",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A robust, easy to use kafka consumer",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,9 @@
     "url": "https://github.com/thynson/kafka-pipeline.git"
   },
   "author": "LAN Xingcan",
-  "keywords": ["kafka"],
+  "keywords": [
+    "kafka"
+  ],
   "license": "ISC",
   "peerDependencies": {
     "kafka-node": "^3.0.0"
