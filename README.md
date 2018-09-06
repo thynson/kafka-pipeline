@@ -8,14 +8,14 @@ The basic idea behind this library is separate consume progress and offset
 commit into two [Transform] stream. While this idea is originate from 
 `ConsumerGroupStream` from [kafka-node], it's buggy when you try to use it
 with offset being managed by yourself, which prevents you from implementing
-a reliable message consumer that meets guarantee that each message shloud be
+a reliable message consumer meets guarantee that each message should be
 consumed at least once.
 
 Even if you don't care about at-least-once guarantee at all, 
 `ConsumerGroupStream` duplicates a lot of message after rebalance. Although 
 your apps need to be idempotency when handle message, this library take the 
 best efforts to minimize the duplication of messages, unless error occurred
-that prevent the offset to be committed, you shall NEVER see any duplication.
+that prevent the offset to be committed, it shall NEVER duplicate any message.
 
 ## Installation
 
@@ -31,11 +31,24 @@ npm install kafka-pipeline kafka-node
 ```javascript 
 const {ConsumerGroupPipeline} = require('kafka-pipeline');
 
-const consumerPipeline = new ConsumerGroupPipeline(new ConsumerGroup(consumerGroupOption), {
-  messageConsumer: this.messageConsumer.bind(this),
-  failedMessageConsumer: this.messageConsumer.bind(this),
-  maxConsumeConcurrency: 8,
-  consumeTimeout: 5000
+const consumerPipeline = new ConsumerGroupPipeline({
+  topic: TOPIC_NAME,
+  messageConsumer: async (message) => {
+    //...
+  },
+  failedMessageConsumer: async (exception, message) => {
+    //...
+  },
+  consumeConcurrency: 8,
+  consumeTimeout: 5000,
+  commitInterval: 10000,
+  consumerGroupOption: {
+    groupId: GROUP_ID
+    // Properties of this object will be pass to ConsumerGroup
+    // except that some of them could be override by ConsumerGroupPipeline
+    // See reference of its setting at https://github.com/SOHU-Co/kafka-node
+    // 
+  }
 });
 
 // The following code is for demo purpose only, not suggesting you to do this
