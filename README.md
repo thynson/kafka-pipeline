@@ -4,8 +4,25 @@ This library provide a robust, easy to use kafka message consumer based on
 `ConsumerGroup` from [kafka-node] that helps you managing message offsets 
 in correct way.
 
+## Design notes
+
 The basic idea behind this library is separate consume progress and offset
-commit into two [Transform] stream. While this idea is originate from 
+commit into two [Transform] stream, namely `ConsumeTransformStream` and 
+`CommitTransformStream`, messages will be consumed by `ConsumeTransformStream`
+by invoking a specified callback within a specified concurrency limit. And,
+`ConsumeTransformStream` will yield all received messages in the same order
+to `CommitTransformStream` when all the condition following are met:
+
+1. the message itself has been consumed
+
+2. all predecessor message in the same partition have been consumed
+
+While the `CommitTransformStream` remember the latest offset of each partitions
+and topics, commit them repeatedly in a specified interval as well as the time 
+when the consumer is rebalanced or closed.
+
+
+While this idea is originate from 
 `ConsumerGroupStream` from [kafka-node], it's buggy when you try to use it
 with offset being managed by yourself, which prevents you from implementing
 a reliable message consumer meets guarantee that each message should be
