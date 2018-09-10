@@ -53,6 +53,10 @@ const consumerPipeline = new ConsumerGroupPipeline({
   messageConsumer: async (message) => {
     //...
   },
+  // A optional callback function handled messages failed to consume by 
+  // `messageConsumer`. When error raised in `messageConsumer`, 
+  // consumerPipeline will be closed if you don't provide `failedMessageConsumer`,
+  // or `failedMessageConsumer` also raise an exception 
   failedMessageConsumer: async (exception, message) => {
     //...
   },
