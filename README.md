@@ -68,6 +68,8 @@ const consumerPipeline = new ConsumerGroupPipeline({
   }
 });
 
+consumerPipeline.start();
+
 // The following code is for demo purpose only, not suggesting you to do this
 // in production code. But to avoid message duplication you need to ensure your
 // app will quit in a graceful way that await the promise returned by 
