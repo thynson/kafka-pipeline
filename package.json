@@ -1,0 +1,30 @@
+{
+  "name": "kafka-pipeline",
+  "version": "0.2.1",
+  "description": "A robust, easy to use kafka consumer",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thynson/kafka-pipeline.git"
+  },
+  "author": "LAN Xingcan",
+  "keywords": [
+    "kafka"
+  ],
+  "license": "ISC",
+  "peerDependencies": {
+    "kafka-node": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^23.3.1",
+    "jest": "^23.5.0",
+    "kafka-node": "^3.0.0"
+  },
+  "dependencies": {
+    "bluebird": "^3.5.2",
+    "debug": "^3.1.0"
+  }
+}
