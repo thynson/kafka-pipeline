@@ -60,7 +60,7 @@ lib-cov
 # Coverage directory used by tools like istanbul
 coverage
 
-# nyc test coverage
+# nyc tests coverage
 .nyc_output
 
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
@@ -78,12 +78,12 @@ jspm_packages
 
 # Optional npm cache directory
 .npm
-.nyc_output
 
 # Optional REPL history
 .node_repl_history
 
 docs/
 coverage/
+dist/
 
 

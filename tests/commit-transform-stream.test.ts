@@ -1,9 +1,10 @@
 'use strict';
 
+import CommitTransformStream from '../lib/commit-transform-stream';
+import Bluebird  from 'bluebird';
+import fakeSleep from './lib/fake-sleep';
+
 jest.useFakeTimers();
-const {CommitTransformStream} = require('../lib/commit-transform-stream');
-const Bluebird = require('bluebird');
-const fakeSleep = require('./lib/fake-sleep');
 
 describe('CommitTransformStream', () => {
 
@@ -164,7 +165,7 @@ describe('CommitTransformStream', () => {
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
     await fakeSleep(500);
     expect(commitFunction).toHaveBeenCalledTimes(1);
-    const promise = cts._currentCommitPromise;
+    const promise = cts['_currentCommitPromise'];
     await Bluebird.fromCallback((done) => cts.write({offset: 2, topic: 'test', partition: 0}, done));
     await fakeSleep(500);
     expect(commitFunction).toHaveBeenCalledTimes(1);

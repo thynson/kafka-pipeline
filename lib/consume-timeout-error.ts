@@ -1,23 +1,23 @@
 'use strict';
-const util = require('util');
+import util from 'util';
 
 /**
  * Error indicates that your messageConsumer did not finish handling message
  * within a given
  */
-class ConsumeTimeoutError extends Error {
+export default class ConsumeTimeoutError extends Error {
 
   /**
    * @param timedOutMessage {String|Buffer}
    * @param timeout {Number}
    * @param groupId {String}
    */
-  constructor(timedOutMessage, timeout, groupId) {
+  constructor(private timedOutMessage : String|Buffer,
+              private timeout: number,
+              private groupId: string) {
     super(`Message consuming did not complete within ${timeout}`
       + `milliseconds when consuming message:\n${util.inspect(timedOutMessage)}`);
     Error.captureStackTrace(this, ConsumeTimeoutError);
-    this.timedOutMessage = timedOutMessage;
-    this.groupId = groupId;
   }
 
   get name() {
@@ -25,4 +25,3 @@ class ConsumeTimeoutError extends Error {
   }
 }
 
-module.exports = {ConsumeTimeoutError};
