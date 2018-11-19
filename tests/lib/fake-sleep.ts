@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = async function delay(ms) {
+export default async function delay(ms) {
   return new Promise((done) => {
     setTimeout(() => {
       jest.runAllImmediates();

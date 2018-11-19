@@ -1,6 +1,17 @@
-'use strict';
-const {Transform} = require('stream');
-const Bluebird = require('bluebird');
+import {Transform} from 'stream';
+import Bluebird from 'bluebird';
+
+namespace CommitTransformStream {
+  interface CommitFunction {
+    (commits: {topic: String, partition: Number, offset: Number }[]): Promise<unknown> | unknown
+  }
+  export interface Option {
+    commitFunction: CommitFunction
+    commitInterval: number
+
+  }
+}
+
 
 /**
  * @callback CommitFunction
@@ -13,31 +24,33 @@ const Bluebird = require('bluebird');
  */
 class CommitTransformStream extends Transform {
 
+  private _bufferedOffset: Map<string, Map<number, number>> = new Map();
+  private _options: CommitTransformStream.Option;
+  private _forceCommitTimeout?: NodeJS.Timer;
+  private _currentCommitPromise: Promise<any> = Bluebird.resolve();
+  private _isDestroyed: boolean = false;
+
   /**
    * @param options {Object}
    * @param options.commitFunction {CommitFunction}
    * @param options.commitInterval {Number} A positive integer that specifies a minimal duration (in milliseconds)
    * between two offset commit request
    */
-  constructor(options) {
+  constructor(options: CommitTransformStream.Option) {
     super({objectMode: true});
     this._options = options;
-    this._bufferedOffset = new Map();
-    this._forceCommitTimeout = null;
-    this._currentCommitPromise = Bluebird.resolve(null);
-    this._isDestroyed = false;
   }
 
   _popBufferedOffset() {
     const messages = this._bufferedOffset;
     this._bufferedOffset = new Map();
     const offsets = [];
-    for (const [topic, partitions] of messages.entries()) {
-      partitions.forEach((offset, partition) => {
+    for (const [topic, partitions] of messages) {
+      for (const [partition, offset] of partitions) {
         offsets.push({
-          topic, offset, partition
+            topic, offset, partition
         });
-      });
+      }
     }
     return offsets;
   }
@@ -79,11 +92,11 @@ class CommitTransformStream extends Transform {
     const {topic, partition, offset} = message;
 
     if (!this._bufferedOffset.has(topic)) {
-      const partitions = [];
-      partitions[partition] = offset + 1;
+      const partitions = new Map<number, number>();
+      partitions.set(partition, offset + 1);
       this._bufferedOffset.set(topic, partitions);
     } else {
-      this._bufferedOffset.get(topic)[partition] = offset + 1;
+      this._bufferedOffset.get(topic).set(partition, offset + 1);
     }
 
     if (!this._forceCommitTimeout) {
@@ -108,5 +121,5 @@ class CommitTransformStream extends Transform {
   }
 }
 
-module.exports = {CommitTransformStream};
 
+export default CommitTransformStream;

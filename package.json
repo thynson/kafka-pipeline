@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A robust, easy to use kafka consumer",
   "homepage": "https://thynson.github.com/kafka-pipeline",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "jest",
     "postpublish": "git describe --exact-match && jsdoc -c jsdoc.conf && gh-pages -d docs"
@@ -22,10 +22,13 @@
   },
   "devDependencies": {
     "@types/jest": "^23.3.1",
+    "@types/node": "^10.12.9",
     "gh-pages": "^1.2.0",
-    "jest": "^23.5.0",
+    "jest": "^23.6.0",
     "jsdoc": "^3.5.5",
-    "kafka-node": "^2.6.1"
+    "kafka-node": "^3.0.1",
+    "ts-jest": "^23.10.4",
+    "typescript": "^3.1.6"
   },
   "dependencies": {
     "bluebird": "^3.5.2",

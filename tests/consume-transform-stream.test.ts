@@ -1,13 +1,14 @@
 'use strict';
 jest.useFakeTimers();
 
-const {ConsumeTransformStream} = require('../lib/consume-transform-stream');
-const Bluebird = require('bluebird');
-const fakeSleep = require('./lib/fake-sleep');
+import ConsumeTransformStream from'../lib/consume-transform-stream';
+import Bluebird  from 'bluebird';
+import fakeSleep from './lib/fake-sleep';
 
 function createConsumer(option = {}) {
   return new ConsumeTransformStream(Object.assign({}, {
     consumeTimeout: 5000,
+    groupId: 'test',
     consumeConcurrency: 8,
     messageConsumer: jest.fn().mockResolvedValue(null),
     failedMessageConsumer: jest.fn().mockResolvedValue(null)

@@ -1,7 +1,6 @@
-'use strict';
-const Bluebird = require('bluebird');
-const {Transform} = require('stream');
-const {ConsumeTimeoutError} = require('./consume-timeout-error');
+import Bluebird from 'bluebird';
+import {Transform} from 'stream';
+import ConsumeTimeoutError from './consume-timeout-error';
 
 
 /**
@@ -27,11 +26,32 @@ const {ConsumeTimeoutError} = require('./consume-timeout-error');
  * value of any other types indicates that the message have already been consumed.
  *
  */
+namespace ConsumeTransformStream {
+  export interface Option {
+    consumeConcurrency: number,
+    consumeTimeout: number,
+    groupId: string
+
+    messageConsumer(message): Promise<unknown> | unknown;
+
+    failedMessageConsumer?(error, message): Promise<unknown> | unknown
+
+  }
+}
 
 /**
  * @private
  */
 class ConsumeTransformStream extends Transform {
+
+  private _options: ConsumeTransformStream.Option;
+  private _currentConsumeConcurrency: number = 0;
+  private _concurrentPromise: Promise<unknown> = Bluebird.resolve();
+  private _waitingQueue: { message: unknown, done(e?: Error) }[] = [];
+  private _lastMessageQueuedPromise: Promise<unknown> = Bluebird.resolve();
+  private _isDestroyed: boolean = false;
+  private _unhandledException?: Error;
+
 
   /**
    *
@@ -42,10 +62,9 @@ class ConsumeTransformStream extends Transform {
    * @param options.groupId {String}
    * @param [options.failedMessageConsumer]  {FailedMessageConsumerCallback}
    */
-  constructor(options) {
+  constructor(options: ConsumeTransformStream.Option) {
     super({
       objectMode: true,
-      decodeString: true,
       highWaterMark: options.consumeConcurrency + 1
     });
     this._options = options;
@@ -150,7 +169,7 @@ class ConsumeTransformStream extends Transform {
     }
   }
 
-  _internalDestroy(e) {
+  _internalDestroy(e: Error) {
     this._isDestroyed = true;
     this.emit('error', e);
     this._unhandledException = e;
@@ -158,4 +177,5 @@ class ConsumeTransformStream extends Transform {
 
 }
 
-module.exports = {ConsumeTransformStream};
+export default ConsumeTransformStream;
+

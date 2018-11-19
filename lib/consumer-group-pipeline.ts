@@ -1,10 +1,11 @@
 'use strict';
 
-const Bluebird = require('bluebird');
-const {ConsumerGroup} = require('kafka-node');
-const {CommitTransformStream} = require('./commit-transform-stream');
-const {ConsumeTransformStream} = require('./consume-transform-stream');
-const {EventEmitter} = require('events');
+import Bluebird from 'bluebird';
+import {ConsumerGroup, ConsumerGroupOptions, Message} from 'kafka-node';
+import CommitTransformStream from './commit-transform-stream';
+import ConsumeTransformStream from './consume-transform-stream';
+import {EventEmitter} from 'events';
+
 const debug = require('debug')('kafka-pipeline:ConsumerGroupPipeline');
 
 
@@ -19,8 +20,25 @@ const defaultConsumerGroupOption = {
   sessionTimeout: 15000,
 };
 
+namespace ConsumerGroupPipeline {
+  export interface Option {
+    topic: string | string[];
+    consumerGroupOption: ConsumerGroupOptions,
+    messageConsumer: (message: Message) => Promise<unknown> | unknown;
+    failedMessageConsumer?: (error: Error, message: Message) => Promise<unknown> | unknown;
+    consumeTimeout?: number;
+    consumeConcurrency?: number;
+    commitInterval?: number;
+  }
+}
+
 
 class ConsumerGroupPipeline extends EventEmitter {
+  private _options: ConsumerGroupPipeline.Option;
+  private _rebalanceCallback?: (e?: Error) => unknown;
+  private _runningPromise?: Promise<unknown>;
+  private _consumeTransformStream?: ConsumeTransformStream;
+
 
   /**
    *
@@ -35,7 +53,7 @@ class ConsumerGroupPipeline extends EventEmitter {
    * @param [options.commitInterval=100000] {Number} Time in milliseconds between two commit, suggest to be greater than
    * `consumeTimeout`.
    */
-  constructor(options = {}) {
+  constructor(options: ConsumerGroupPipeline.Option) {
     super();
 
     if (typeof options !== 'object') {
@@ -214,12 +232,10 @@ class ConsumerGroupPipeline extends EventEmitter {
       }
     );
 
-    const consumerGroup = new ConsumerGroup(consumerGroupOptions, [this._options.topic]);
+    const consumerGroup = new ConsumerGroup(consumerGroupOptions, this._options.topic);
 
     consumerGroup.on('rebalanced', () => {
-      if (consumerGroup.paused) {
-        consumerGroup.resume();
-      }
+      consumerGroup.resume();
     });
 
     this._pipelineLifecycle(consumerGroup, callback);
@@ -257,7 +273,7 @@ class ConsumerGroupPipeline extends EventEmitter {
    */
   close() {
     if (!this._runningPromise) {
-      return Bluebird.resolve(null);
+      return Bluebird.resolve();
     }
     const runningPromise = this._runningPromise;
     this._runningPromise = null;
