@@ -1,6 +1,6 @@
 {
   "name": "kafka-pipeline",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A robust, easy to use kafka consumer",
   "homepage": "https://thynson.github.com/kafka-pipeline",
   "main": "dist/index.js",
