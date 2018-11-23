@@ -2,8 +2,8 @@
 
 import Bluebird from 'bluebird';
 import {ConsumerGroup, ConsumerGroupOptions, Message} from 'kafka-node';
-import CommitTransformStream from './commit-transform-stream';
-import ConsumeTransformStream from './consume-transform-stream';
+import CommitStream from './commit-stream';
+import {default as ConsumeStream, ConsumeOption, MessageConsumer, FailedMessageConsumer} from './consume-stream';
 import {EventEmitter} from 'events';
 
 const debug = require('debug')('kafka-pipeline:ConsumerGroupPipeline');
@@ -32,12 +32,16 @@ namespace ConsumerGroupPipeline {
   }
 }
 
-
 class ConsumerGroupPipeline extends EventEmitter {
   private _options: ConsumerGroupPipeline.Option;
   private _rebalanceCallback?: (e?: Error) => unknown;
-  private _runningPromise?: Promise<unknown>;
-  private _consumeTransformStream?: ConsumeTransformStream;
+  private _promiseOfOpening?: Promise<unknown>;
+  private _promiseOfRunning?: Promise<unknown>;
+  private _promiseOfClosing?: Promise<unknown>;
+  private _consumeTransformStream?: ConsumeStream;
+  private _consumer?: ConsumerGroup;
+
+  private _topicMap: Map<string, ConsumeStream> = new Map();
 
 
   /**
@@ -68,7 +72,7 @@ class ConsumerGroupPipeline extends EventEmitter {
     this._options = Object.assign({}, defaultOptions, options);
 
     this._rebalanceCallback = null;
-    this._runningPromise = null; // Indicates whether this pipeline is running or closed
+    this._promiseOfRunning = null; // Indicates whether this pipeline is running or closed
   }
 
   /**
@@ -77,7 +81,7 @@ class ConsumerGroupPipeline extends EventEmitter {
    * @param callback
    * @private
    */
-  _pipelineSession(consumerGroup, callback) {
+  _pipelineSession(consumerGroup: ConsumerGroup, callback: (e?: Error) => unknown) {
 
     const commitFunction = (offsets) => {
       return new Bluebird((done, fail) => {
@@ -96,19 +100,19 @@ class ConsumerGroupPipeline extends EventEmitter {
     };
     let consumeTransformStreamFull = false;
     const queuedMessages = [];
-    const consumeTransformStream = new ConsumeTransformStream({
+    const consumeTransformStream = new ConsumeStream({
       groupId: this._options.consumerGroupOption.groupId,
       consumeConcurrency: this._options.consumeConcurrency,
       messageConsumer: this._options.messageConsumer,
       failedMessageConsumer: this._options.failedMessageConsumer,
       consumeTimeout: this._options.consumeTimeout
     });
-    const commitTransformStream = new CommitTransformStream({
+    const commitTransformStream = new CommitStream({
       commitFunction,
       commitInterval: this._options.commitInterval
     });
     const pumpQueuedMessage = () => {
-      if (!this._runningPromise ||
+      if (!this._promiseOfRunning ||
         this._rebalanceCallback ||
         consumeTransformStreamFull
       ) {
@@ -130,15 +134,19 @@ class ConsumerGroupPipeline extends EventEmitter {
       queuedMessages.push(message);
     };
 
-    const cleanUpAndExit = (e) => {
+    const cleanUpAndExit = (e?: Error) => {
       consumeTransformStream.removeAllListeners();
       commitTransformStream.removeAllListeners();
+      // @ts-ignore
       consumerGroup.removeListener('message', onMessage);
+      // @ts-ignore
       consumerGroup.removeListener('done', onFetchCompleted);
+      // @ts-ignore
       consumerGroup.removeAllListeners('error');
       callback(e);
     };
 
+    // @ts-ignore
     consumerGroup.once('error', (e) => {
       debug('Error occurred for consumer group: ', e);
       cleanUpAndExit(e);
@@ -160,6 +168,7 @@ class ConsumerGroupPipeline extends EventEmitter {
 
 
     consumerGroup.on('message', onMessage);
+    // @ts-ignore
     consumerGroup.on('done', onFetchCompleted);
 
     consumeTransformStream.on('drain', () => {
@@ -177,7 +186,7 @@ class ConsumerGroupPipeline extends EventEmitter {
    * @param callback {Function} A function will be called when consuming pipeline is closed
    * @private
    */
-  _pipelineLifecycle(consumerGroup, callback) {
+  _pipelineLifecycle(consumerGroup: ConsumerGroup, callback: (e?: Error) => unknown) {
 
     return this._pipelineSession(consumerGroup, (e) => {
       if (e) {
@@ -208,10 +217,10 @@ class ConsumerGroupPipeline extends EventEmitter {
    * @param callback {Function} A function will be called when consuming pipeline is closed
    * @private
    */
-  _consumeForever(callback) {
+  _consumeForever(callback: (e?: Error) => unknown) {
 
     const onRebalance = (isMember, rebalanceCallback) => {
-      if (!(isMember && this._runningPromise)) {
+      if (!(isMember && this._promiseOfRunning)) {
         rebalanceCallback();
         return;
       }
@@ -232,24 +241,44 @@ class ConsumerGroupPipeline extends EventEmitter {
       }
     );
 
-    const consumerGroup = new ConsumerGroup(consumerGroupOptions, this._options.topic);
+    this._consumer = new ConsumerGroup(consumerGroupOptions, this._options.topic);
 
-    consumerGroup.on('rebalanced', () => {
-      consumerGroup.resume();
+    this._consumer.on('rebalanced', () => {
+      this._consumer.resume();
     });
 
-    this._pipelineLifecycle(consumerGroup, callback);
+    this._pipelineLifecycle(this._consumer, callback);
+  }
+
+
+  /**
+   *
+   * @param topic
+   * @param option {ConsumeOption}
+   * @param option.messageConsumer {MessageConsumer} Function to consume message
+   * @param [option.failedMessageConsumer] {FailedMessageConsumer} Function to consume message that failed to
+   * consume by `messageConsumer`
+   * @param [option.consumeTimeout=5000] {Number}
+   * @param [option.consumeConcurrency=8] {Number}
+   * @param [option.commitInterval=100000] {Number} Time in milliseconds between two commit, suggest to be greater than
+   */
+  subscribe(topic, option: ConsumeOption) {
+
+  }
+
+  unsubscribe(topic) {
+
   }
 
   /**
    * Start consuming
    */
-  start() {
+  private async _doRun() {
 
-    if (this._runningPromise) {
-      return;
+    if (this._promiseOfRunning) {
+      return this._promiseOfRunning;
     }
-    this._runningPromise = Bluebird
+    this._promiseOfRunning = Bluebird
       .fromCallback((done) => {
         this._consumeForever((e) => {
           if (e) {
@@ -271,15 +300,90 @@ class ConsumerGroupPipeline extends EventEmitter {
    * Stop consuming
    * @returns {Promise}
    */
-  close() {
-    if (!this._runningPromise) {
+  private _doClose() {
+    if (!this._promiseOfRunning) {
       return Bluebird.resolve();
     }
-    const runningPromise = this._runningPromise;
-    this._runningPromise = null;
+    const runningPromise = this._promiseOfRunning;
+    this._promiseOfRunning = null;
 
     process.nextTick(() => this._consumeTransformStream.end());
     return runningPromise;
+  }
+
+  run(): Promise<unknown> {
+    ConsumerGroupPipeline.checkOpened(this);
+    ConsumerGroupPipeline.checkClosed(this);
+
+    if (this._promiseOfRunning) {
+      return this._promiseOfRunning;
+    }
+
+    this._promiseOfRunning = this._doRun();
+    return this._promiseOfRunning;
+  }
+
+  private async _doOpen() {
+    const onRebalance = (isMember, rebalanceCallback) => {
+      if (!(isMember && this._promiseOfRunning)) {
+        rebalanceCallback();
+        return;
+      }
+      this._rebalanceCallback = rebalanceCallback;
+      // This function will finally triggered 'end' event of commit transform stream
+      process.nextTick(() => this._consumeTransformStream.end());
+    };
+
+    const consumerGroupOptions = Object.assign(
+      {},
+      defaultConsumerGroupOption,
+      this._options.consumerGroupOption,
+      {
+        onRebalance,
+        autoCommit: false,
+        paused: true,
+        connectOnReady: true,
+      }
+    );
+
+    const consumerGroup = new ConsumerGroup(consumerGroupOptions, this._options.topic);
+
+
+  }
+
+  open(): Promise<unknown> {
+
+    ConsumerGroupPipeline.checkClosed(this);
+    if (this._promiseOfOpening) {
+      return this._promiseOfOpening;
+    }
+
+    this._promiseOfOpening = this._doOpen();
+    return this._promiseOfOpening;
+  }
+
+  close(): Promise<unknown> {
+    ConsumerGroupPipeline.checkOpened(this);
+    if (this._promiseOfClosing) {
+      return this._promiseOfClosing;
+    }
+    this._promiseOfClosing = Promise.all([
+      this._doClose(),
+      this.run().catch(() => null)
+    ]);
+    return this._promiseOfClosing;
+  }
+
+  private static checkOpened(self: ConsumerGroupPipeline) {
+    if (!self._promiseOfOpening) {
+      throw new Error('This daemon is not opened yet');
+    }
+  }
+
+  private static checkClosed(self: ConsumerGroupPipeline) {
+    if (self._promiseOfClosing) {
+      throw new Error('This daemon is closed');
+    }
   }
 }
 

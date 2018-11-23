@@ -1,50 +1,53 @@
 import Bluebird from 'bluebird';
 import {Transform} from 'stream';
 import ConsumeTimeoutError from './consume-timeout-error';
+import {Message} from 'kafka-node';
 
 
-/**
- * @callback MessageConsumerCallback
- * @param message {Object}
- * @param message.topic {String}
- * @param message.offset {Number}
- * @param message.values {String|Buffer}
- * @param message.partition {Number}
- * @returns {Promise|*} This function need to return a promise if the message is consumed asynchronously,
- * value of any other types indicates that the message have already been consumed.
- */
+export interface MessageConsumer {
+  /**
+   * @param message {Object}
+   * @param message.topic {String}
+   * @param message.offset {Number}
+   * @param message.values {String|Buffer}
+   * @param message.partition {Number}
+   * @returns {Promise|*} This function need to return a promise if the message is consumed asynchronously,
+   * value of any other types indicates that the message have already been consumed.
+   */
+  (message: Message): Promise<unknown> | unknown;
+}
 
-/**
- * @callback FailedMessageConsumerCallback
- * @param error
- * @param message {Object}
- * @param message.topic {String}
- * @param message.offset {Number}
- * @param message.values {String|Buffer}
- * @param message.partition {Number}
- * @returns {Promise|*} This function need to return a promise if the message is consumed asynchronously,
- * value of any other types indicates that the message have already been consumed.
- *
- */
-namespace ConsumeTransformStream {
-  export interface Option {
-    consumeConcurrency: number,
-    consumeTimeout: number,
-    groupId: string
-
-    messageConsumer(message): Promise<unknown> | unknown;
-
-    failedMessageConsumer?(error, message): Promise<unknown> | unknown
-
-  }
+export interface FailedMessageConsumer {
+  /**
+   * @param error Error
+   * @param message {Object}
+   * @param message.topic {String}
+   * @param message.offset {Number}
+   * @param message.values {String|Buffer}
+   * @param message.partition {Number}
+   * @returns {Promise|*} This function need to return a promise if the message is consumed asynchronously,
+   * value of any other types indicates that the message have already been consumed.
+   */
+  (error: Error, message: Message): Promise<unknown> | unknown;
 }
 
 /**
- * @private
+ * ConsumeOption
  */
-class ConsumeTransformStream extends Transform {
+export interface ConsumeOption {
+  consumeConcurrency: number,
+  consumeTimeout: number,
+  groupId: string
 
-  private _options: ConsumeTransformStream.Option;
+  messageConsumer: MessageConsumer
+
+  failedMessageConsumer?: FailedMessageConsumer
+
+}
+
+class ConsumeStream extends Transform {
+
+  private _options: ConsumeOption;
   private _currentConsumeConcurrency: number = 0;
   private _concurrentPromise: Promise<unknown> = Bluebird.resolve();
   private _waitingQueue: { message: unknown, done(e?: Error) }[] = [];
@@ -62,7 +65,7 @@ class ConsumeTransformStream extends Transform {
    * @param options.groupId {String}
    * @param [options.failedMessageConsumer]  {FailedMessageConsumerCallback}
    */
-  constructor(options: ConsumeTransformStream.Option) {
+  constructor(options: ConsumeOption) {
     super({
       objectMode: true,
       highWaterMark: options.consumeConcurrency + 1
@@ -177,5 +180,5 @@ class ConsumeTransformStream extends Transform {
 
 }
 
-export default ConsumeTransformStream;
+export default ConsumeStream;
 

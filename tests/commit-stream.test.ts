@@ -1,12 +1,12 @@
 'use strict';
 
-import CommitTransformStream from '../lib/commit-transform-stream';
+import CommitStream from '../lib/commit-stream';
 import Bluebird  from 'bluebird';
 import fakeSleep from './lib/fake-sleep';
 
 jest.useFakeTimers();
 
-describe('CommitTransformStream', () => {
+describe('CommitStream', () => {
 
   test('Closed without writing message', (callback) => {
 

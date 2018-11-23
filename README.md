@@ -7,17 +7,17 @@ in correct way.
 ## Design notes
 
 The basic idea behind this library is separate consume progress and offset
-commit into two [Transform] stream, namely `ConsumeTransformStream` and 
-`CommitTransformStream`, messages will be consumed by `ConsumeTransformStream`
+commit into two [Transform] stream, namely `ConsumeStream` and 
+`CommitStream`, messages will be consumed by `ConsumeStream`
 by invoking a specified callback within a specified concurrency limit. And,
-`ConsumeTransformStream` will yield all received messages in the same order
-to `CommitTransformStream` when all the condition following are met:
+`ConsumeStream` will yield all received messages in the same order
+to `CommitStream` when all the condition following are met:
 
 1. the message itself has been consumed
 
 2. all predecessor message in the same partition have been consumed
 
-While the `CommitTransformStream` remember the latest offset of each partitions
+While the `CommitStream` remember the latest offset of each partitions
 and topics, commit them repeatedly in a specified interval as well as the time 
 when the consumer is rebalanced or closed.
 

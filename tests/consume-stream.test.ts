@@ -1,12 +1,12 @@
 'use strict';
 jest.useFakeTimers();
 
-import ConsumeTransformStream from'../lib/consume-transform-stream';
+import ConsumeStream from '../lib/consume-stream';
 import Bluebird  from 'bluebird';
 import fakeSleep from './lib/fake-sleep';
 
 function createConsumer(option = {}) {
-  return new ConsumeTransformStream(Object.assign({}, {
+  return new ConsumeStream(Object.assign({}, {
     consumeTimeout: 5000,
     groupId: 'test',
     consumeConcurrency: 8,
@@ -27,7 +27,7 @@ function createMessage(option) {
   }, option);
 }
 
-describe('ConsumeTransformStream', () => {
+describe('ConsumeStream', () => {
 
 
   test('Close immediately', (callback) => {

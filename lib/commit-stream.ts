@@ -22,10 +22,10 @@ namespace CommitTransformStream {
 /**
  * @private
  */
-class CommitTransformStream extends Transform {
+class CommitStream extends Transform {
 
   private _bufferedOffset: Map<string, Map<number, number>> = new Map();
-  private _options: CommitTransformStream.Option;
+  private _options: CommitStream.Option;
   private _forceCommitTimeout?: NodeJS.Timer;
   private _currentCommitPromise: Promise<any> = Bluebird.resolve();
   private _isDestroyed: boolean = false;
@@ -36,7 +36,7 @@ class CommitTransformStream extends Transform {
    * @param options.commitInterval {Number} A positive integer that specifies a minimal duration (in milliseconds)
    * between two offset commit request
    */
-  constructor(options: CommitTransformStream.Option) {
+  constructor(options: CommitStream.Option) {
     super({objectMode: true});
     this._options = options;
   }
@@ -122,4 +122,4 @@ class CommitTransformStream extends Transform {
 }
 
 
-export default CommitTransformStream;
+export default CommitStream;
