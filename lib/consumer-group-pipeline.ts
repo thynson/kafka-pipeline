@@ -96,7 +96,7 @@ export class ConsumerGroupPipeline extends EventEmitter {
    * @param callback
    * @private
    */
-  _pipelineSession(consumerGroup: ConsumerGroup, callback: (e?: Error) => unknown) {
+  private _pipelineSession(consumerGroup: ConsumerGroup, callback: (e?: Error) => unknown) {
 
     const commitFunction = (offsets) => {
       return new Bluebird((done, fail) => {
@@ -201,7 +201,7 @@ export class ConsumerGroupPipeline extends EventEmitter {
    * @param callback {Function} A function will be called when consuming pipeline is closed
    * @private
    */
-  _pipelineLifecycle(consumerGroup: ConsumerGroup, callback: (e?: Error) => unknown) {
+  private _pipelineLifecycle(consumerGroup: ConsumerGroup, callback: (e?: Error) => unknown) {
 
     return this._pipelineSession(consumerGroup, (e) => {
       if (e) {
@@ -230,7 +230,7 @@ export class ConsumerGroupPipeline extends EventEmitter {
    * Stop consuming
    * @returns {Promise}
    */
-  private close() {
+  public close() {
     if (!this._consumingPromise) {
       return Bluebird.resolve();
     }
@@ -245,7 +245,7 @@ export class ConsumerGroupPipeline extends EventEmitter {
   /**
    * Start consuming message until being closed
    */
-  private async start() {
+  public async start() {
     const onRebalance = (isMember, rebalanceCallback) => {
       if (!(isMember && this._consumingPromise)) {
         rebalanceCallback();

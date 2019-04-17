@@ -43,7 +43,7 @@ class CommitStream extends Transform {
     this._options = options;
   }
 
-  _popBufferedOffset() {
+  private _popBufferedOffset() {
     const messages = this._bufferedOffset;
     this._bufferedOffset = new Map();
     const offsets = [];
@@ -57,7 +57,7 @@ class CommitStream extends Transform {
     return offsets;
   }
 
-  _performCommit() {
+  private _performCommit() {
     if (this._isDestroyed) {
       // Won't perform commit, return the rejected promise
       return this._currentCommitPromise;
@@ -81,7 +81,7 @@ class CommitStream extends Transform {
     return this._currentCommitPromise;
   }
 
-  _setForceCommitTimeout() {
+  private _setForceCommitTimeout() {
     this._forceCommitTimeout = setTimeout(() => {
       this._performCommit()
         .catch((e) => {
@@ -115,7 +115,7 @@ class CommitStream extends Transform {
       });
   }
 
-  _internalDestroy(e) {
+  private _internalDestroy(e) {
     if (!this._isDestroyed) {
       this._isDestroyed = true;
       this.emit('error', e);

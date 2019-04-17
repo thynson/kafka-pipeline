@@ -4,6 +4,7 @@
   "description": "A robust, easy to use kafka consumer",
   "homepage": "https://thynson.github.com/kafka-pipeline",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest",
     "build-document": "typedoc --mode modules --ignoreCompilerErrors --excludePrivate --out docs lib/",

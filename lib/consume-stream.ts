@@ -89,7 +89,7 @@ class ConsumeStream extends Transform {
       });
   }
 
-  _consumeMessage(message) {
+  private _consumeMessage(message) {
     let timeoutHandler = null;
     let timeoutDone = null;
     return Bluebird
@@ -125,7 +125,7 @@ class ConsumeStream extends Transform {
       });
   }
 
-  _concurrentConsumeMessage(message) {
+  private _concurrentConsumeMessage(message) {
     if (this._isDestroyed) {
       return;
     }
@@ -143,7 +143,7 @@ class ConsumeStream extends Transform {
       });
   }
 
-  _enqueue(message) {
+  private _enqueue(message) {
     return new Bluebird((done) => {
       ++this._currentConsumeConcurrency;
       if (this._currentConsumeConcurrency > this._options.consumeConcurrency) {
@@ -154,7 +154,7 @@ class ConsumeStream extends Transform {
     });
   }
 
-  _dequeue() {
+  private _dequeue() {
     this._currentConsumeConcurrency--;
     if (this._waitingQueue.length > 0) {
       const {message, done} = this._waitingQueue.shift();
@@ -163,7 +163,7 @@ class ConsumeStream extends Transform {
     }
   }
 
-  _internalDestroy(e: Error) {
+  private _internalDestroy(e: Error) {
     this._isDestroyed = true;
     this.emit('error', e);
     this._unhandledException = e;
