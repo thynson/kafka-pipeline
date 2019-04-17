@@ -63,92 +63,28 @@
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
-			<div class="tsd-panel tsd-typography">
-				<h1 id="kafka-pipeline">kafka-pipeline</h1>
-				<p>This library provide a robust, easy to use kafka message consumer based on
-					<code>ConsumerGroup</code> from <a href="https://github.com/SOHU-Co/kafka-node">kafka-node</a> that helps you managing message offsets
-				in correct way.</p>
-				<h2 id="design-notes">Design notes</h2>
-				<p>The basic idea behind this library is separate consume progress and offset
-					commit into two <a href="https://nodejs.org/api/stream.html#stream_class_stream_transform">Transform</a> stream, namely <code>ConsumeStream</code> and
-					<code>CommitStream</code>, messages will be consumed by <code>ConsumeStream</code>
-					by invoking a specified callback within a specified concurrency limit. And,
-					<code>ConsumeStream</code> will yield all received messages in the same order
-				to <code>CommitStream</code> when all the condition following are met:</p>
-				<ol>
-					<li><p>the message itself has been consumed</p>
-					</li>
-					<li><p>all predecessor message in the same partition have been consumed</p>
-					</li>
-				</ol>
-				<p>While the <code>CommitStream</code> remember the latest offset of each partitions
-					and topics, commit them repeatedly in a specified interval as well as the time
-				when the consumer is rebalanced or closed.</p>
-				<p>While this idea is originate from
-					<code>ConsumerGroupStream</code> from <a href="https://github.com/SOHU-Co/kafka-node">kafka-node</a>, it&#39;s buggy when you try to use it
-					with offset being managed by yourself, which prevents you from implementing
-					a reliable message consumer meets guarantee that each message should be
-				consumed at least once.</p>
-				<p>Even if you don&#39;t care about at-least-once guarantee at all,
-					<code>ConsumerGroupStream</code> duplicates a lot of message after rebalance. Although
-					your apps need to be idempotency when handle message, this library take the
-					best efforts to minimize the duplication of messages, unless error occurred
-				that prevent the offset to be committed, it shall NEVER duplicate any message.</p>
-				<h2 id="installation">Installation</h2>
-				<p><a href="https://github.com/SOHU-Co/kafka-node">kafka-node</a> is A peer dependency of this library, you need to install it
-				together with kafka-pipeline.</p>
-				<pre><code class="language-bash">npm install kafka-pipeline kafka-node</code></pre>
-				<h2 id="usage">Usage</h2>
-				<pre><code class="language-javascript"><span class="hljs-keyword">const</span> {ConsumerGroupPipeline} = <span class="hljs-built_in">require</span>(<span class="hljs-string">'kafka-pipeline'</span>);
-
-<span class="hljs-keyword">const</span> consumerPipeline = <span class="hljs-keyword">new</span> ConsumerGroupPipeline({
-  <span class="hljs-attr">topic</span>: TOPIC_NAME,
-  <span class="hljs-attr">messageConsumer</span>: <span class="hljs-keyword">async</span> (message) =&gt; {
-    <span class="hljs-comment">//...</span>
-  },
-  <span class="hljs-comment">// A optional callback function handled messages failed to consume by </span>
-  <span class="hljs-comment">// `messageConsumer`. When error raised in `messageConsumer`, </span>
-  <span class="hljs-comment">// consumerPipeline will be closed if you don't provide `failedMessageConsumer`,</span>
-  <span class="hljs-comment">// or `failedMessageConsumer` also raise an exception </span>
-  failedMessageConsumer: <span class="hljs-keyword">async</span> (exception, message) =&gt; {
-    <span class="hljs-comment">//...</span>
-  },
-  <span class="hljs-attr">consumeConcurrency</span>: <span class="hljs-number">8</span>,
-  <span class="hljs-attr">consumeTimeout</span>: <span class="hljs-number">5000</span>,
-  <span class="hljs-attr">commitInterval</span>: <span class="hljs-number">10000</span>,
-  <span class="hljs-attr">consumerGroupOption</span>: {
-    <span class="hljs-attr">groupId</span>: GROUP_ID
-    <span class="hljs-comment">// Properties of this object will be pass to ConsumerGroup</span>
-    <span class="hljs-comment">// except that some of them could be override by ConsumerGroupPipeline</span>
-    <span class="hljs-comment">// See reference of its setting at https://github.com/SOHU-Co/kafka-node</span>
-    <span class="hljs-comment">// </span>
-  }
-});
-
-consumerPipeline.start();
-
-<span class="hljs-comment">// The following code is for demo purpose only, not suggesting you to do this</span>
-<span class="hljs-comment">// in production code. But to avoid message duplication you need to ensure your</span>
-<span class="hljs-comment">// app will quit in a graceful way that await the promise returned by </span>
-<span class="hljs-comment">// consumerPipeline.close() is resolved, which will do the final offset commit</span>
-process.on(<span class="hljs-string">'SIGTERM'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-  consumerPipeline.close().then(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-    process.exit(<span class="hljs-number">0</span>);
-  });
-});</code></pre>
-				<h2 id="license">License</h2>
-				<p>ISC License, see <code>LICENSE</code> file.</p>
-				<h2 id="todo">TODO</h2>
-				<ol>
-					<li>More test</li>
-					<li>Consider support HighLevelConsumer?</li>
-				</ol>
-			</div>
+			<section class="tsd-panel-group tsd-index-group">
+				<h2>Index</h2>
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section ">
+							<h3>External modules</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-external-module"><a href="modules/_commit_stream_.html" class="tsd-kind-icon">"commit-<wbr>stream"</a></li>
+								<li class="tsd-kind-external-module"><a href="modules/_consume_stream_.html" class="tsd-kind-icon">"consume-<wbr>stream"</a></li>
+								<li class="tsd-kind-external-module"><a href="modules/_consume_timeout_error_.html" class="tsd-kind-icon">"consume-<wbr>timeout-<wbr>error"</a></li>
+								<li class="tsd-kind-external-module"><a href="modules/_consumer_group_pipeline_.html" class="tsd-kind-icon">"consumer-<wbr>group-<wbr>pipeline"</a></li>
+								<li class="tsd-kind-external-module"><a href="modules/_index_.html" class="tsd-kind-icon">"index"</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation primary">
 				<ul>
-					<li class="globals  ">
+					<li class="globals current ">
 						<a href="globals.html"><em>Globals</em></a>
 					</li>
 					<li class=" tsd-kind-external-module">

@@ -3,17 +3,17 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>kafka-pipeline</title>
+	<title>CommitFunction | kafka-pipeline</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="assets/css/main.css">
+	<link rel="stylesheet" href="../assets/css/main.css">
 </head>
 <body>
 <header>
 	<div class="tsd-page-toolbar">
 		<div class="container">
 			<div class="table-wrap">
-				<div class="table-cell" id="tsd-search" data-index="assets/js/search.js" data-base=".">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.js" data-base="..">
 					<div class="field">
 						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
 						<input id="tsd-search-field" type="text" />
@@ -22,7 +22,7 @@
 						<li class="state loading">Preparing search index...</li>
 						<li class="state failure">The search index is not available</li>
 					</ul>
-					<a href="index.html" class="title">kafka-pipeline</a>
+					<a href="../index.html" class="title">kafka-pipeline</a>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -53,123 +53,100 @@
 		<div class="container">
 			<ul class="tsd-breadcrumb">
 				<li>
-					<a href="globals.html">Globals</a>
+					<a href="../globals.html">Globals</a>
+				</li>
+				<li>
+					<a href="../modules/_commit_stream_.html">&quot;commit-stream&quot;</a>
+				</li>
+				<li>
+					<a href="../classes/_commit_stream_.commitstream.html">CommitStream</a>
+				</li>
+				<li>
+					<a href="_commit_stream_.commitstream.commitfunction.html">CommitFunction</a>
 				</li>
 			</ul>
-			<h1> kafka-pipeline</h1>
+			<h1>Interface CommitFunction</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
-			<div class="tsd-panel tsd-typography">
-				<h1 id="kafka-pipeline">kafka-pipeline</h1>
-				<p>This library provide a robust, easy to use kafka message consumer based on
-					<code>ConsumerGroup</code> from <a href="https://github.com/SOHU-Co/kafka-node">kafka-node</a> that helps you managing message offsets
-				in correct way.</p>
-				<h2 id="design-notes">Design notes</h2>
-				<p>The basic idea behind this library is separate consume progress and offset
-					commit into two <a href="https://nodejs.org/api/stream.html#stream_class_stream_transform">Transform</a> stream, namely <code>ConsumeStream</code> and
-					<code>CommitStream</code>, messages will be consumed by <code>ConsumeStream</code>
-					by invoking a specified callback within a specified concurrency limit. And,
-					<code>ConsumeStream</code> will yield all received messages in the same order
-				to <code>CommitStream</code> when all the condition following are met:</p>
-				<ol>
-					<li><p>the message itself has been consumed</p>
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<span class="target">CommitFunction</span>
 					</li>
-					<li><p>all predecessor message in the same partition have been consumed</p>
+				</ul>
+			</section>
+			<section class="tsd-panel">
+				<h3 class="tsd-before-signature">Callable</h3>
+				<ul class="tsd-signatures tsd-kind-interface tsd-parent-kind-class">
+					<li class="tsd-signature tsd-kind-icon">__call<span class="tsd-signature-symbol">(</span>commits<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">OffsetCommitRequest</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">unknown</span></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in commit-stream.ts:6</li>
+							</ul>
+						</aside>
+						<div class="tsd-comment tsd-typography">
+						</div>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>commits: <span class="tsd-signature-type">OffsetCommitRequest</span><span class="tsd-signature-symbol">[]</span></h5>
+								<div class="tsd-comment tsd-typography">
+								</div>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span>
+							<span class="tsd-signature-symbol"> | </span>
+							<span class="tsd-signature-type">unknown</span>
+						</h4>
 					</li>
-				</ol>
-				<p>While the <code>CommitStream</code> remember the latest offset of each partitions
-					and topics, commit them repeatedly in a specified interval as well as the time
-				when the consumer is rebalanced or closed.</p>
-				<p>While this idea is originate from
-					<code>ConsumerGroupStream</code> from <a href="https://github.com/SOHU-Co/kafka-node">kafka-node</a>, it&#39;s buggy when you try to use it
-					with offset being managed by yourself, which prevents you from implementing
-					a reliable message consumer meets guarantee that each message should be
-				consumed at least once.</p>
-				<p>Even if you don&#39;t care about at-least-once guarantee at all,
-					<code>ConsumerGroupStream</code> duplicates a lot of message after rebalance. Although
-					your apps need to be idempotency when handle message, this library take the
-					best efforts to minimize the duplication of messages, unless error occurred
-				that prevent the offset to be committed, it shall NEVER duplicate any message.</p>
-				<h2 id="installation">Installation</h2>
-				<p><a href="https://github.com/SOHU-Co/kafka-node">kafka-node</a> is A peer dependency of this library, you need to install it
-				together with kafka-pipeline.</p>
-				<pre><code class="language-bash">npm install kafka-pipeline kafka-node</code></pre>
-				<h2 id="usage">Usage</h2>
-				<pre><code class="language-javascript"><span class="hljs-keyword">const</span> {ConsumerGroupPipeline} = <span class="hljs-built_in">require</span>(<span class="hljs-string">'kafka-pipeline'</span>);
-
-<span class="hljs-keyword">const</span> consumerPipeline = <span class="hljs-keyword">new</span> ConsumerGroupPipeline({
-  <span class="hljs-attr">topic</span>: TOPIC_NAME,
-  <span class="hljs-attr">messageConsumer</span>: <span class="hljs-keyword">async</span> (message) =&gt; {
-    <span class="hljs-comment">//...</span>
-  },
-  <span class="hljs-comment">// A optional callback function handled messages failed to consume by </span>
-  <span class="hljs-comment">// `messageConsumer`. When error raised in `messageConsumer`, </span>
-  <span class="hljs-comment">// consumerPipeline will be closed if you don't provide `failedMessageConsumer`,</span>
-  <span class="hljs-comment">// or `failedMessageConsumer` also raise an exception </span>
-  failedMessageConsumer: <span class="hljs-keyword">async</span> (exception, message) =&gt; {
-    <span class="hljs-comment">//...</span>
-  },
-  <span class="hljs-attr">consumeConcurrency</span>: <span class="hljs-number">8</span>,
-  <span class="hljs-attr">consumeTimeout</span>: <span class="hljs-number">5000</span>,
-  <span class="hljs-attr">commitInterval</span>: <span class="hljs-number">10000</span>,
-  <span class="hljs-attr">consumerGroupOption</span>: {
-    <span class="hljs-attr">groupId</span>: GROUP_ID
-    <span class="hljs-comment">// Properties of this object will be pass to ConsumerGroup</span>
-    <span class="hljs-comment">// except that some of them could be override by ConsumerGroupPipeline</span>
-    <span class="hljs-comment">// See reference of its setting at https://github.com/SOHU-Co/kafka-node</span>
-    <span class="hljs-comment">// </span>
-  }
-});
-
-consumerPipeline.start();
-
-<span class="hljs-comment">// The following code is for demo purpose only, not suggesting you to do this</span>
-<span class="hljs-comment">// in production code. But to avoid message duplication you need to ensure your</span>
-<span class="hljs-comment">// app will quit in a graceful way that await the promise returned by </span>
-<span class="hljs-comment">// consumerPipeline.close() is resolved, which will do the final offset commit</span>
-process.on(<span class="hljs-string">'SIGTERM'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-  consumerPipeline.close().then(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-    process.exit(<span class="hljs-number">0</span>);
-  });
-});</code></pre>
-				<h2 id="license">License</h2>
-				<p>ISC License, see <code>LICENSE</code> file.</p>
-				<h2 id="todo">TODO</h2>
-				<ol>
-					<li>More test</li>
-					<li>Consider support HighLevelConsumer?</li>
-				</ol>
-			</div>
+				</ul>
+			</section>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation primary">
 				<ul>
 					<li class="globals  ">
-						<a href="globals.html"><em>Globals</em></a>
+						<a href="../globals.html"><em>Globals</em></a>
+					</li>
+					<li class="current tsd-kind-external-module">
+						<a href="../modules/_commit_stream_.html">"commit-<wbr>stream"</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/_commit_stream_.html">"commit-<wbr>stream"</a>
+						<a href="../modules/_consume_stream_.html">"consume-<wbr>stream"</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/_consume_stream_.html">"consume-<wbr>stream"</a>
+						<a href="../modules/_consume_timeout_error_.html">"consume-<wbr>timeout-<wbr>error"</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/_consume_timeout_error_.html">"consume-<wbr>timeout-<wbr>error"</a>
+						<a href="../modules/_consumer_group_pipeline_.html">"consumer-<wbr>group-<wbr>pipeline"</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/_consumer_group_pipeline_.html">"consumer-<wbr>group-<wbr>pipeline"</a>
-					</li>
-					<li class=" tsd-kind-external-module">
-						<a href="modules/_index_.html">"index"</a>
+						<a href="../modules/_index_.html">"index"</a>
 					</li>
 				</ul>
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-class tsd-parent-kind-external-module tsd-is-private">
+						<a href="../classes/_commit_stream_.commitstream.html" class="tsd-kind-icon">Commit<wbr>Stream</a>
+						<ul>
+							<li class="current tsd-kind-interface tsd-parent-kind-class">
+								<a href="_commit_stream_.commitstream.commitfunction.html" class="tsd-kind-icon">Commit<wbr>Function</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+				<ul class="after-current">
 				</ul>
 			</nav>
 		</div>
@@ -238,7 +215,7 @@ process.on(<span class="hljs-string">'SIGTERM'</span>, <span class="hljs-functio
 	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
-<script src="assets/js/main.js"></script>
-<script>if (location.protocol == 'file:') document.write('<script src="assets/js/search.js"><' + '/script>');</script>
+<script src="../assets/js/main.js"></script>
+<script>if (location.protocol == 'file:') document.write('<script src="../assets/js/search.js"><' + '/script>');</script>
 </body>
 </html>
