@@ -5,13 +5,10 @@ import {Message} from 'kafka-node';
 
 
 export interface MessageConsumer {
+
   /**
-   * @param message {Object}
-   * @param message.topic {String}
-   * @param message.offset {Number}
-   * @param message.values {String|Buffer}
-   * @param message.partition {Number}
-   * @returns {Promise|*} This function need to return a promise if the message is consumed asynchronously,
+   * @param message - Message to be consumed
+   * @returns This function need to return a promise if the message is consumed asynchronously,
    * value of any other types indicates that the message have already been consumed.
    */
   (message: Message): Promise<unknown> | unknown;
@@ -57,13 +54,7 @@ class ConsumeStream extends Transform {
 
 
   /**
-   *
-   * @param options.messageConsumer {MessageConsumerCallback}
-   * @param options {Object}
-   * @param options.consumeConcurrency  {Number}
-   * @param options.consumeTimeout         {Number}
-   * @param options.groupId {String}
-   * @param [options.failedMessageConsumer]  {FailedMessageConsumerCallback}
+   * @param options - Option controls the behaviors that how the message is consumed
    */
   constructor(options: ConsumeOption) {
     super({

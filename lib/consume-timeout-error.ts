@@ -8,9 +8,9 @@ import util from 'util';
 export default class ConsumeTimeoutError extends Error {
 
   /**
-   * @param timedOutMessage {String|Buffer}
-   * @param timeout {Number}
-   * @param groupId {String}
+   * @param timedOutMessage - Message of for this timeout error
+   * @param timeout - Configured timeout of the consumer
+   * @param groupId - Configured group id of the consumer
    */
   constructor(private timedOutMessage : String|Buffer,
               private timeout: number,

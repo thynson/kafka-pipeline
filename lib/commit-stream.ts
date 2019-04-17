@@ -1,23 +1,28 @@
 import {Transform} from 'stream';
+import {OffsetCommitRequest} from 'kafka-node';
 import Bluebird from 'bluebird';
 
-namespace CommitTransformStream {
+namespace CommitStream {
   interface CommitFunction {
-    (commits: {topic: String, partition: Number, offset: Number }[]): Promise<unknown> | unknown
+    /**
+     * @param commits
+     */
+    (commits: OffsetCommitRequest[]): Promise<unknown> | unknown
   }
   export interface Option {
+    /**
+     * @brief Callback function that will commit the offset
+     */
     commitFunction: CommitFunction
+
+    /**
+     * @brief The interval between two commit
+     */
     commitInterval: number
 
   }
 }
 
-
-/**
- * @callback CommitFunction
- * @param commits {Array.<{topic: String, partition: Number, offset: Number }>}
- * @returns {Promise|*}
- */
 
 /**
  * @private
@@ -31,10 +36,7 @@ class CommitStream extends Transform {
   private _isDestroyed: boolean = false;
 
   /**
-   * @param options {Object}
-   * @param options.commitFunction {CommitFunction}
-   * @param options.commitInterval {Number} A positive integer that specifies a minimal duration (in milliseconds)
-   * between two offset commit request
+   * @param options - Message offset commit option
    */
   constructor(options: CommitStream.Option) {
     super({objectMode: true});
