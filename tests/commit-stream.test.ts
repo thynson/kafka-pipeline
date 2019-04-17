@@ -14,7 +14,7 @@ describe('CommitStream', () => {
     // jest.fn().mockRejectedValue() seems to be buggy
     const commitFunction = jest.fn();
 
-    const cts = new CommitTransformStream({commitInterval, commitFunction});
+    const cts = new CommitStream({commitInterval, commitFunction});
 
     cts.on('end', () => {
       callback();
@@ -32,7 +32,7 @@ describe('CommitStream', () => {
       });
     });
 
-    const cts = new CommitTransformStream({commitInterval, commitFunction});
+    const cts = new CommitStream({commitInterval, commitFunction});
     const onErrorSpy = jest.fn();
     cts.on('error', onErrorSpy);
     const transformSpy = jest.spyOn(cts, '_transform');
@@ -61,7 +61,7 @@ describe('CommitStream', () => {
     // jest.fn().mockRejectedValue() seems to be buggy
     const commitFunction = jest.fn().mockImplementation(() => Bluebird.reject(new Error()));
 
-    const cts = new CommitTransformStream({commitInterval, commitFunction});
+    const cts = new CommitStream({commitInterval, commitFunction});
     const onErrorSpy = jest.fn().mockImplementation(() => {
       callback();
     });
@@ -74,7 +74,7 @@ describe('CommitStream', () => {
 
     const commitFunction = jest.fn().mockResolvedValue(null);
 
-    const cts = new CommitTransformStream({commitInterval, commitFunction});
+    const cts = new CommitStream({commitInterval, commitFunction});
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
     await Bluebird.fromCallback((done) => cts.write({offset: 100, topic: 'test', partition: 1}, done));
     await fakeSleep(400);
@@ -107,7 +107,7 @@ describe('CommitStream', () => {
     const commitInterval = 500;
     const commitFunction = jest.fn().mockResolvedValue(null);
 
-    const cts = new CommitTransformStream({commitInterval, commitFunction});
+    const cts = new CommitStream({commitInterval, commitFunction});
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
     await fakeSleep(499);
     expect(commitFunction).not.toHaveBeenCalled();
@@ -126,7 +126,7 @@ describe('CommitStream', () => {
     const commitInterval = 500;
     const commitFunction = jest.fn().mockResolvedValue(null);
 
-    const cts = new CommitTransformStream({commitInterval, commitFunction});
+    const cts = new CommitStream({commitInterval, commitFunction});
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
     await new Promise((done) => {
       setTimeout(done, 200);
@@ -161,7 +161,7 @@ describe('CommitStream', () => {
         commitCallback = done;
       });
     });
-    const cts = new CommitTransformStream({commitInterval, commitFunction});
+    const cts = new CommitStream({commitInterval, commitFunction});
     await Bluebird.fromCallback((done) => cts.write({offset: 1, topic: 'test', partition: 0}, done));
     await fakeSleep(500);
     expect(commitFunction).toHaveBeenCalledTimes(1);
