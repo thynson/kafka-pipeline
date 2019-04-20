@@ -1,6 +1,5 @@
 import {Transform} from 'stream';
 import {OffsetCommitRequest} from 'kafka-node';
-import Bluebird from 'bluebird';
 
 namespace CommitStream {
   interface CommitFunction {
@@ -34,7 +33,7 @@ class CommitStream extends Transform {
   private _bufferedOffset: Map<string, Map<number, number>> = new Map();
   private _options: CommitStream.Option;
   private _forceCommitTimeout?: NodeJS.Timer;
-  private _currentCommitPromise: Promise<any> = Bluebird.resolve();
+  private _currentCommitPromise: Promise<any> = Promise.resolve();
   private _isDestroyed: boolean = false;
 
   /**
@@ -78,7 +77,7 @@ class CommitStream extends Transform {
       if (offsets.length === 0) {
         return null;
       }
-      return Bluebird.resolve(this._options.commitFunction(offsets))
+      return Promise.resolve(this._options.commitFunction(offsets))
     });
     return this._currentCommitPromise;
   }
