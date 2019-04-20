@@ -66,7 +66,7 @@ export namespace ConsumerGroupPipeline {
   }
 }
 
-export class ConsumerGroupPipeline extends EventEmitter {
+export class ConsumerGroupPipeline {
   private _options: ConsumerGroupPipeline.Option;
   private _rebalanceCallback?: (e?: Error) => unknown;
   private _consumeTransformStream?: ConsumeStream;
@@ -78,7 +78,6 @@ export class ConsumerGroupPipeline extends EventEmitter {
    * @param options Option of for the instance to be created
    */
   constructor(options: ConsumerGroupPipeline.Option) {
-    super();
 
     if (typeof options !== 'object') {
       throw new TypeError('options is not an object');
