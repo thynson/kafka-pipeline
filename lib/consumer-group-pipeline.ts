@@ -286,10 +286,9 @@ export class ConsumerGroupPipeline {
         reject(e);
       };
       this._consumer
-      // @ts-ignore
+        // @ts-ignore
         .once('error', onErrorBeforeConnect)
-        .once('ready', () => {
-          console.log('ready');
+        .once('connect', () => {
           // @ts-ignore
           this._consumer.removeListener('error', reject);
           resolve();
