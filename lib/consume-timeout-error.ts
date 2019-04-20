@@ -1,5 +1,6 @@
 'use strict';
 import util from 'util';
+import {Message} from "kafka-node";
 
 /**
  * Error indicates that your messageConsumer did not finish handling message
@@ -12,7 +13,7 @@ export default class ConsumeTimeoutError extends Error {
    * @param timeout - Configured timeout of the consumer
    * @param groupId - Configured group id of the consumer
    */
-  constructor(private timedOutMessage : String|Buffer,
+  constructor(private timedOutMessage : Message,
               private timeout: number,
               private groupId: string) {
     super(`Message consuming did not complete within ${timeout}`

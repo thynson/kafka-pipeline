@@ -25,6 +25,8 @@ namespace CommitStream {
 
 
 /**
+ * The commit part of the pipeline
+ *
  * @private
  */
 class CommitStream extends Transform {

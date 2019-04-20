@@ -6,15 +6,19 @@ import CommitStream from './commit-stream';
 import {default as ConsumeStream, FailedMessageConsumer, MessageConsumer} from './consume-stream';
 import {EventEmitter} from 'events';
 
-const debug = require('debug')('kafka-pipeline:ConsumerGroupPipeline');
 
-
+/**
+ * @private
+ */
 const defaultOptions = {
   consumeTimeout: 5000,
   commitInterval: 10000,
   consumeConcurrency: 8
 };
 
+/**
+ * @private
+ */
 const defaultConsumerGroupOption = {
   fetchMaxBytes: 65536,
   sessionTimeout: 15000,
@@ -163,17 +167,14 @@ export class ConsumerGroupPipeline extends EventEmitter {
 
     // @ts-ignore
     consumerGroup.once('error', (e) => {
-      debug('Error occurred for consumer group: ', e);
       cleanUpAndExit(e);
     });
 
     consumeTransformStream.once('error', (e) => {
-      debug('Error occurred for consumeTransformStream: ', e);
       cleanUpAndExit(e);
     });
 
     commitTransformStream.once('error', (e) => {
-      debug('Error occurred for commitTransformStream: ', e);
       cleanUpAndExit(e);
     });
 
@@ -230,7 +231,7 @@ export class ConsumerGroupPipeline extends EventEmitter {
    * Stop consuming
    * @returns {Promise}
    */
-  public close() {
+  public close(): Promise<unknown> {
     if (!this._consumingPromise) {
       return Bluebird.resolve();
     }
@@ -241,11 +242,21 @@ export class ConsumerGroupPipeline extends EventEmitter {
     return runningPromise;
   }
 
+  /**
+   * Wait till the pipeline is closed
+   */
+  public async wait(): Promise<unknown> {
+    if (this._consumingPromise) {
+      return this._consumingPromise;
+    }
+    throw new Error('This pipeline is not started')
+  }
+
 
   /**
    * Start consuming message until being closed
    */
-  public async start() {
+  public async start(): Promise<unknown> {
     const onRebalance = (isMember, rebalanceCallback) => {
       if (!(isMember && this._consumingPromise)) {
         rebalanceCallback();

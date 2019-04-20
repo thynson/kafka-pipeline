@@ -3,7 +3,6 @@ import {Transform} from 'stream';
 import ConsumeTimeoutError from './consume-timeout-error';
 import {Message} from 'kafka-node';
 
-
 export interface MessageConsumer {
 
   /**
@@ -16,13 +15,10 @@ export interface MessageConsumer {
 
 export interface FailedMessageConsumer {
   /**
-   * @param error Error
-   * @param message {Object}
-   * @param message.topic {String}
-   * @param message.offset {Number}
-   * @param message.values {String|Buffer}
-   * @param message.partition {Number}
-   * @returns {Promise|*} This function need to return a promise if the message is consumed asynchronously,
+   * @param error - The error raised while consuming the message
+   * @param message - The message failed to be consumed
+   *
+   * This function need to return a promise if the message is consumed asynchronously,
    * value of any other types indicates that the message have already been consumed.
    */
   (error: Error, message: Message): Promise<unknown> | unknown;
@@ -32,22 +28,44 @@ export interface FailedMessageConsumer {
  * ConsumeOption
  */
 export interface ConsumeOption {
+  /**
+   * How many message could be consumed concurrently
+   */
   consumeConcurrency: number,
+
+  /**
+   * Timeout of consuming procedure for a single message
+   */
   consumeTimeout: number,
+
+  /**
+   * The group that the consumer is belonging to
+   */
   groupId: string
 
+  /**
+   * The consuming procedure to be invoked for each message
+   */
   messageConsumer: MessageConsumer
 
+  /**
+   * Optional failed message handler
+   */
   failedMessageConsumer?: FailedMessageConsumer
 
 }
 
+/**
+ * The consuming part of the pipeline
+ *
+ * @private
+ */
 class ConsumeStream extends Transform {
 
   private _options: ConsumeOption;
   private _currentConsumeConcurrency: number = 0;
   private _concurrentPromise: Promise<unknown> = Bluebird.resolve();
-  private _waitingQueue: { message: unknown, done(e?: Error) }[] = [];
+  private _waitingQueue: { message: Message, done(e?: Error) }[] = [];
   private _lastMessageQueuedPromise: Promise<unknown> = Bluebird.resolve();
   private _isDestroyed: boolean = false;
   private _unhandledException?: Error;
@@ -72,7 +90,14 @@ class ConsumeStream extends Transform {
   }
 
 
-  _transform(message, encoding, callback) {
+  /**
+   *
+   * @param message
+   * @param encoding
+   * @param callback
+   * @private
+   */
+  _transform(message: Message, encoding, callback) {
     this._lastMessageQueuedPromise = this._enqueue(message);
     this._lastMessageQueuedPromise.then(() => {
       callback(null);
@@ -89,7 +114,12 @@ class ConsumeStream extends Transform {
       });
   }
 
-  private _consumeMessage(message) {
+  /**
+   *
+   * @param message
+   * @private
+   */
+  private _consumeMessage(message: Message): Promise<unknown> {
     let timeoutHandler = null;
     let timeoutDone = null;
     return Bluebird
@@ -125,7 +155,7 @@ class ConsumeStream extends Transform {
       });
   }
 
-  private _concurrentConsumeMessage(message) {
+  private _concurrentConsumeMessage(message: Message) {
     if (this._isDestroyed) {
       return;
     }
@@ -143,7 +173,7 @@ class ConsumeStream extends Transform {
       });
   }
 
-  private _enqueue(message) {
+  private _enqueue(message: Message) {
     return new Bluebird((done) => {
       ++this._currentConsumeConcurrency;
       if (this._currentConsumeConcurrency > this._options.consumeConcurrency) {

@@ -7,8 +7,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest",
-    "build-document": "typedoc --mode modules --ignoreCompilerErrors --excludePrivate --out docs lib/",
-    "postpublish": "git describe --exact-match && npm run build-document && gh-pages -d docs"
+    "build-document": "typedoc --mode modules --ignoreCompilerErrors --excludePrivate --out docs lib/ && touch docs/.nojekyll",
+    "postpublish": "git describe --exact-match && npm run build-document && gh-pages -t -d docs"
   },
   "repository": {
     "type": "git",
