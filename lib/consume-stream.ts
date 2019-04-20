@@ -1,4 +1,3 @@
-import Bluebird from 'bluebird';
 import {Transform} from 'stream';
 import ConsumeTimeoutError from './consume-timeout-error';
 import {Message} from 'kafka-node';
@@ -64,9 +63,9 @@ class ConsumeStream extends Transform {
 
   private _options: ConsumeOption;
   private _currentConsumeConcurrency: number = 0;
-  private _concurrentPromise: Promise<unknown> = Bluebird.resolve();
+  private _concurrentPromise: Promise<unknown> = Promise.resolve();
   private _waitingQueue: { message: Message, done(e?: Error) }[] = [];
-  private _lastMessageQueuedPromise: Promise<unknown> = Bluebird.resolve();
+  private _lastMessageQueuedPromise: Promise<unknown> = Promise.resolve();
   private _isDestroyed: boolean = false;
   private _unhandledException?: Error;
 
@@ -82,9 +81,9 @@ class ConsumeStream extends Transform {
     this._options = options;
 
     this._currentConsumeConcurrency = 0;
-    this._concurrentPromise = Bluebird.resolve();
+    this._concurrentPromise = Promise.resolve();
     this._waitingQueue = [];
-    this._lastMessageQueuedPromise = Bluebird.resolve();
+    this._lastMessageQueuedPromise = Promise.resolve();
     this._isDestroyed = false;
     this._unhandledException = null;
   }
@@ -122,9 +121,9 @@ class ConsumeStream extends Transform {
   private _consumeMessage(message: Message): Promise<unknown> {
     let timeoutHandler = null;
     let timeoutDone = null;
-    return Bluebird
+    return Promise
       .all([
-        Bluebird
+        Promise
           .resolve(this._options.messageConsumer(message))
           .finally(() => {
             if (timeoutHandler !== null) {
@@ -132,7 +131,7 @@ class ConsumeStream extends Transform {
               timeoutDone();
             }
           }),
-        new Bluebird((done, fail) => {
+        new Promise((done, fail) => {
           timeoutDone = done;
           timeoutHandler = setTimeout(() => {
             timeoutDone = null;
@@ -145,7 +144,7 @@ class ConsumeStream extends Transform {
         if (typeof this._options.failedMessageConsumer !== 'function') {
           throw exception;
         }
-        return Bluebird.resolve(this._options.failedMessageConsumer(exception, message));
+        return Promise.resolve(this._options.failedMessageConsumer(exception, message));
       })
       .then(() => {
         this._dequeue();
@@ -160,7 +159,7 @@ class ConsumeStream extends Transform {
       return;
     }
     const concurrentPromise = this._concurrentPromise;
-    this._concurrentPromise = Bluebird
+    this._concurrentPromise = Promise
       .all([
         concurrentPromise,
         this._consumeMessage(message)
@@ -174,7 +173,7 @@ class ConsumeStream extends Transform {
   }
 
   private _enqueue(message: Message) {
-    return new Bluebird((done) => {
+    return new Promise((done) => {
       ++this._currentConsumeConcurrency;
       if (this._currentConsumeConcurrency > this._options.consumeConcurrency) {
         return this._waitingQueue.push({message, done});

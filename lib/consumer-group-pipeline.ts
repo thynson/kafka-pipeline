@@ -1,10 +1,8 @@
 'use strict';
 
-import Bluebird from 'bluebird';
 import {ConsumerGroup, ConsumerGroupOptions} from 'kafka-node';
 import CommitStream from './commit-stream';
 import {default as ConsumeStream, FailedMessageConsumer, MessageConsumer} from './consume-stream';
-import {EventEmitter} from 'events';
 
 
 /**
@@ -102,7 +100,7 @@ export class ConsumerGroupPipeline {
   private _pipelineSession(consumerGroup: ConsumerGroup, callback: (e?: Error) => unknown) {
 
     const commitFunction = (offsets) => {
-      return new Bluebird((done, fail) => {
+      return new Promise((done, fail) => {
         if (offsets.length === 0) {
           return done();
         }
@@ -232,7 +230,7 @@ export class ConsumerGroupPipeline {
    */
   public close(): Promise<unknown> {
     if (!this._consumingPromise) {
-      return Bluebird.resolve();
+      return Promise.resolve();
     }
     const runningPromise = this._consumingPromise;
     this._consumingPromise = null;
@@ -267,7 +265,7 @@ export class ConsumerGroupPipeline {
     };
 
 
-    return new Bluebird((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this._consumer = new ConsumerGroup(Object.assign({},
         defaultConsumerGroupOption,
         this._options.consumerGroupOption,
@@ -288,7 +286,7 @@ export class ConsumerGroupPipeline {
         reject(e);
       };
       this._consumer
-        // @ts-ignore
+      // @ts-ignore
         .once('error', onErrorBeforeConnect)
         .once('ready', () => {
           console.log('ready');
@@ -296,7 +294,12 @@ export class ConsumerGroupPipeline {
           this._consumer.removeListener('error', reject);
           resolve();
         });
-      this._consumingPromise = Bluebird.fromCallback((done) => this._pipelineLifecycle(this._consumer, done));
+      this._consumingPromise = new Promise((resolve, reject) => {
+        return this._pipelineLifecycle(this._consumer, (e) => {
+          if (e) return reject(e);
+          return resolve();
+        });
+      });
     });
   }
 }
