@@ -121,25 +121,27 @@ class ConsumeStream extends Transform {
   private _consumeMessage(message: Message): Promise<unknown> {
     let timeoutHandler = null;
     let timeoutDone = null;
+    const consumePromise = (async () => {
+      try {
+        await this._options.messageConsumer(message)
+      } finally {
+        if (timeoutHandler !== null) {
+          clearTimeout(timeoutHandler);
+          timeoutDone();
+        }
+      }
+    })();
+    const timeoutPromise = new Promise((done, fail) => {
+      timeoutDone = done;
+      timeoutHandler = setTimeout(() => {
+        timeoutDone = null;
+        timeoutHandler = null;
+        fail(new ConsumeTimeoutError(message, this._options.consumeTimeout, this._options.groupId));
+      }, this._options.consumeTimeout);
+    });
+
     return Promise
-      .all([
-        Promise
-          .resolve(this._options.messageConsumer(message))
-          .finally(() => {
-            if (timeoutHandler !== null) {
-              clearTimeout(timeoutHandler);
-              timeoutDone();
-            }
-          }),
-        new Promise((done, fail) => {
-          timeoutDone = done;
-          timeoutHandler = setTimeout(() => {
-            timeoutDone = null;
-            timeoutHandler = null;
-            fail(new ConsumeTimeoutError(message, this._options.consumeTimeout, this._options.groupId));
-          }, this._options.consumeTimeout);
-        })
-      ])
+      .all([consumePromise, timeoutPromise])
       .catch((exception) => {
         if (typeof this._options.failedMessageConsumer !== 'function') {
           throw exception;
