@@ -123,13 +123,13 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Consume<wbr>Timeout<wbr>Error<span class="tsd-signature-symbol">(</span>timedOutMessage<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">String</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Buffer</span>, timeout<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, groupId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_consume_timeout_error_.consumetimeouterror.html" class="tsd-signature-type">ConsumeTimeoutError</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Consume<wbr>Timeout<wbr>Error<span class="tsd-signature-symbol">(</span>timedOutMessage<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Message</span>, timeout<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, groupId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_consume_timeout_error_.consumetimeouterror.html" class="tsd-signature-type">ConsumeTimeoutError</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in consume-timeout-error.ts:8</li>
+									<li>Defined in consume-timeout-error.ts:9</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -137,7 +137,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>timedOutMessage: <span class="tsd-signature-type">String</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Buffer</span></h5>
+									<h5>timedOutMessage: <span class="tsd-signature-type">Message</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<div class="lead">
 											<p>Message of for this timeout error</p>
@@ -215,7 +215,7 @@
 							<aside class="tsd-sources">
 								<p>Overrides Error.name</p>
 								<ul>
-									<li>Defined in consume-timeout-error.ts:23</li>
+									<li>Defined in consume-timeout-error.ts:24</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>

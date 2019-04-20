@@ -86,7 +86,7 @@
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in consume-stream.ts:17</li>
+								<li>Defined in consume-stream.ts:16</li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -96,19 +96,22 @@
 							<li>
 								<h5>error: <span class="tsd-signature-type">Error</span></h5>
 								<div class="tsd-comment tsd-typography">
-									<p>Error</p>
+									<p>The error raised while consuming the message</p>
 								</div>
 							</li>
 							<li>
 								<h5>message: <span class="tsd-signature-type">Message</span></h5>
+								<div class="tsd-comment tsd-typography">
+									<p>The message failed to be consumed</p>
+									<p>This function need to return a promise if the message is consumed asynchronously,
+									value of any other types indicates that the message have already been consumed.</p>
+								</div>
 							</li>
 						</ul>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span>
 							<span class="tsd-signature-symbol"> | </span>
 							<span class="tsd-signature-type">unknown</span>
 						</h4>
-						<p>This function need to return a promise if the message is consumed asynchronously,
-						value of any other types indicates that the message have already been consumed.</p>
 					</li>
 				</ul>
 			</section>
@@ -138,7 +141,7 @@
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
-					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+					<li class=" tsd-kind-class tsd-parent-kind-external-module tsd-is-private">
 						<a href="../classes/_consume_stream_.consumestream.html" class="tsd-kind-icon">Consume<wbr>Stream</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
