@@ -13,7 +13,7 @@ import EventEmitter = NodeJS.EventEmitter;
 const defaultOptions = {
   consumeTimeout: 5000,
   commitInterval: 10000,
-  consumeConcurrency: 8
+  consumeConcurrency: 1
 };
 
 /**

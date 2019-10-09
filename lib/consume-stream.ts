@@ -28,7 +28,7 @@ export interface FailedMessageConsumer {
  */
 export interface ConsumeOption {
   /**
-   * How many message could be consumed concurrently
+   * How many message could be consumed concurrently per partition
    */
   consumeConcurrency: number,
 
