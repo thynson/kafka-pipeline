@@ -1,8 +1,10 @@
 'use strict';
 
-import {ConsumerGroup, ConsumerGroupOptions} from 'kafka-node';
+import {ConsumerGroup, ConsumerGroupOptions, Message} from 'kafka-node';
 import CommitStream from './commit-stream';
 import {default as ConsumeStream, FailedMessageConsumer, MessageConsumer} from './consume-stream';
+import Bluebird from 'bluebird';
+import EventEmitter = NodeJS.EventEmitter;
 
 
 /**
@@ -17,9 +19,10 @@ const defaultOptions = {
 /**
  * @private
  */
-const defaultConsumerGroupOption = {
+const defaultConsumerGroupOption: Partial<ConsumerGroupOptions> = {
   fetchMaxBytes: 65536,
   sessionTimeout: 15000,
+  heartbeatInterval: 5000
 };
 
 export namespace ConsumerGroupPipeline {
@@ -67,9 +70,10 @@ export namespace ConsumerGroupPipeline {
 export class ConsumerGroupPipeline {
   private _options: ConsumerGroupPipeline.Option;
   private _rebalanceCallback?: (e?: Error) => unknown;
-  private _consumeTransformStream?: ConsumeStream;
   private _consumer?: ConsumerGroup;
   private _consumingPromise?: Promise<unknown>;
+  private _commitStream?: CommitStream;
+  private _consumeStreamMap?: Map<number, ConsumeStream> = new Map();
 
   /**
    *
@@ -99,98 +103,107 @@ export class ConsumerGroupPipeline {
    */
   private _pipelineSession(consumerGroup: ConsumerGroup, callback: (e?: Error) => unknown) {
 
-    const commitFunction = (offsets) => {
-      return new Promise((done, fail) => {
-        if (offsets.length === 0) {
-          return done();
-        }
-        return consumerGroup.sendOffsetCommitRequest(offsets.map((offset) => {
-          return Object.assign({}, {metadata: 'm'}, offset, {metadata: 'm'});
-        }), (commitError) => {
-          if (commitError) {
-            return fail(commitError);
-          }
-          return done();
-        });
-      });
-    };
-    let consumeTransformStreamFull = false;
     const queuedMessages = [];
-    const consumeTransformStream = new ConsumeStream({
-      groupId: this._options.consumerGroupOption.groupId,
-      consumeConcurrency: this._options.consumeConcurrency,
-      messageConsumer: this._options.messageConsumer,
-      failedMessageConsumer: this._options.failedMessageConsumer,
-      consumeTimeout: this._options.consumeTimeout
-    });
-    const commitTransformStream = new CommitStream({
-      commitFunction,
-      commitInterval: this._options.commitInterval
-    });
-    const pumpQueuedMessage = () => {
-      if (!this._consumingPromise ||
-        this._rebalanceCallback ||
-        consumeTransformStreamFull
-      ) {
-        return;
-      }
-      while (queuedMessages.length > 0) {
-        if (!consumeTransformStream.write(queuedMessages.shift())) {
-          consumeTransformStreamFull = true;
-          return;
-        }
-      }
-      consumerGroup.resume();
-    };
+    let partitionedQueuedMessage: Map<number, Message[]>;
+
+    const partitionFulledMap = new Map<number, boolean>();
+
     const onFetchCompleted = () => {
       consumerGroup.pause();
-      pumpQueuedMessage();
+
+      partitionedQueuedMessage = queuedMessages.reduce((result, message: Message) => {
+        let currentPartitionQueue = result.get(message.partition);
+        if (!currentPartitionQueue) {
+          currentPartitionQueue = [];
+          result.set(message.partition, currentPartitionQueue);
+        }
+        currentPartitionQueue.push(message);
+        return result;
+      }, new Map<number, Message[]>());
+      partitionedQueuedMessage.forEach((messages, partition) => {
+        pumpQueuedMessage(partition);
+      });
     };
+
+    const cleanUpAndExit = (e?: Error) => {
+      for (const consumeStream of this._consumeStreamMap.values()) {
+        consumeStream.removeAllListeners();
+      }
+      // @ts-ignore
+      (consumerGroup as EventEmitter)
+        .removeListener('message', onMessage)
+        .removeListener('done', onFetchCompleted)
+        .removeListener('error', cleanUpAndExit);
+      this._commitStream.removeListener('error', cleanUpAndExit);
+      callback(e);
+    };
+    this._commitStream.addListener('error', cleanUpAndExit);
+
     const onMessage = (message) => {
       queuedMessages.push(message);
     };
 
-    const cleanUpAndExit = (e?: Error) => {
-      consumeTransformStream.removeAllListeners();
-      commitTransformStream.removeAllListeners();
-      // @ts-ignore
-      consumerGroup.removeListener('message', onMessage);
-      // @ts-ignore
-      consumerGroup.removeListener('done', onFetchCompleted);
-      // @ts-ignore
-      consumerGroup.removeAllListeners('error');
-      callback(e);
+    const ensurePipelineForPartition = (partition: number): ConsumeStream => {
+      let consumeStream = this._consumeStreamMap.get(partition);
+      if (consumeStream) {
+        return consumeStream;
+      }
+      consumeStream = new ConsumeStream({
+        groupId: this._options.consumerGroupOption.groupId,
+        consumeConcurrency: this._options.consumeConcurrency,
+        messageConsumer: this._options.messageConsumer,
+        failedMessageConsumer: this._options.failedMessageConsumer,
+        consumeTimeout: this._options.consumeTimeout
+      });
+
+      consumeStream.once('error', (e) => {
+        cleanUpAndExit(e);
+      }).once('end', ()=>{
+        this._consumeStreamMap.delete(partition);
+        consumeStream.removeAllListeners();
+        if (this._consumeStreamMap.size === 0) {
+          cleanUpAndExit();
+        }
+      }).on('drain', () => {
+        partitionFulledMap.set(partition, false);
+        pumpQueuedMessage(partition);
+      }).on('data', (message) => {
+        this._commitStream.write(message);
+      }).resume();
+      this._consumeStreamMap.set(partition, consumeStream);
+      partitionFulledMap.set(partition, false);
+      return consumeStream;
     };
 
-    // @ts-ignore
-    consumerGroup.once('error', (e) => {
-      cleanUpAndExit(e);
-    });
+    const pumpQueuedMessage = (partition: number) => {
+      if (!this._consumingPromise ||
+        this._rebalanceCallback ||
+        partitionFulledMap.get(partition)
+      ) {
+        return;
+      }
+      const queuedMessages = partitionedQueuedMessage.get(partition);
+      while (queuedMessages.length > 0) {
+        const message = queuedMessages.shift();
+        const consumeStream = ensurePipelineForPartition(message.partition);
+        if (!consumeStream.write(message)) {
+          partitionFulledMap.set(partition, true);
+          return;
+        }
+      }
+      for (const [partition, queue] of partitionedQueuedMessage.entries()) {
+        if (queue.length > 0) {
+          return;
+        }
+      }
+      consumerGroup.resume();
 
-    consumeTransformStream.once('error', (e) => {
-      cleanUpAndExit(e);
-    });
-
-    commitTransformStream.once('error', (e) => {
-      cleanUpAndExit(e);
-    });
-
-    commitTransformStream.once('end', () => {
-      cleanUpAndExit(null);
-    }).resume();
-
-
+    };
+    consumerGroup.on('error', cleanUpAndExit);
     consumerGroup.on('message', onMessage);
     // @ts-ignore
-    consumerGroup.on('done', onFetchCompleted);
-
-    consumeTransformStream.on('drain', () => {
-      consumeTransformStreamFull = false;
-      pumpQueuedMessage();
-    });
-
-    consumeTransformStream.pipe(commitTransformStream);
-    this._consumeTransformStream = consumeTransformStream;
+    consumerGroup.on('done', onFetchCompleted)
+    consumerGroup.resume();
   }
 
   /**
@@ -235,7 +248,9 @@ export class ConsumerGroupPipeline {
     const runningPromise = this._consumingPromise;
     this._consumingPromise = null;
 
-    process.nextTick(() => this._consumeTransformStream.end());
+    process.nextTick(() => {
+      this._consumeStreamMap.forEach((consumeStream)=> consumeStream.end());
+    });
     return runningPromise;
   }
 
@@ -260,13 +275,15 @@ export class ConsumerGroupPipeline {
         return;
       }
       this._rebalanceCallback = rebalanceCallback;
-      // This function will finally triggered 'end' event of commit transform stream
-      process.nextTick(() => this._consumeTransformStream.end());
+      process.nextTick(() => {
+        // This function will finally triggered 'end' event of commit transform stream
+        this._consumeStreamMap.forEach((consumeStream)=> consumeStream.end());
+      });
     };
 
 
     return new Promise((resolve, reject) => {
-      this._consumer = new ConsumerGroup(Object.assign({},
+      const consumerGroup = this._consumer = new ConsumerGroup(Object.assign({},
         defaultConsumerGroupOption,
         this._options.consumerGroupOption,
         {
@@ -277,27 +294,45 @@ export class ConsumerGroupPipeline {
         }
       ), this._options.topic);
 
-      this._consumer.on('rebalanced', () => {
-        this._consumer.resume();
-      });
+      const commitFunction = (offsets) => {
+        return new Promise((done, fail) => {
+          if (offsets.length === 0) {
+            return done();
+          }
+          return consumerGroup.sendOffsetCommitRequest(offsets.map((offset) => {
+            return Object.assign({}, {metadata: 'm'}, offset, {metadata: 'm'});
+          }), (commitError) => {
+            if (commitError) {
+              return fail(commitError);
+            }
+            return done();
+          });
+        });
+      };
+
+      this._commitStream = new CommitStream({
+        commitFunction,
+        commitInterval: this._options.commitInterval
+      }).resume();
+
       const onErrorBeforeConnect = (e) => {
         // @ts-ignore
-        this._consumer.removeListener('error', resolve);
+        this._consumer.removeListener('error', onErrorBeforeConnect);
         reject(e);
       };
-      this._consumer
-        // @ts-ignore
+      // @ts-ignore
+      (this._consumer as EventEmitter)
+        .on('rebalanced', () => {
+          this._consumer.resume();
+        })
         .once('error', onErrorBeforeConnect)
         .once('connect', () => {
           // @ts-ignore
           this._consumer.removeListener('error', reject);
           resolve();
         });
-      this._consumingPromise = new Promise((resolve, reject) => {
-        return this._pipelineLifecycle(this._consumer, (e) => {
-          if (e) return reject(e);
-          return resolve();
-        });
+      this._consumingPromise = Bluebird.fromCallback((cb) => {
+        return this._pipelineLifecycle(this._consumer, cb);
       });
     });
   }

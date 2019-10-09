@@ -20,16 +20,19 @@
   ],
   "license": "ISC",
   "peerDependencies": {
-    "kafka-node": "^4.1.1"
+    "kafka-node": "git+ssh://git@github.com/thynson/kafka-node.git#803555ebb0a774d53a294995e9ef97dc07ac60ed"
   },
   "devDependencies": {
-    "@types/jest": "^24.0.15",
-    "@types/node": "^10.14.12",
-    "gh-pages": "^2.0.1",
-    "jest": "^24.8.0",
-    "kafka-node": "^4.1.3",
-    "ts-jest": "^24.0.2",
+    "@types/jest": "^24.0.18",
+    "@types/node": "^10.14.21",
+    "gh-pages": "^2.1.1",
+    "jest": "^24.9.0",
+    "kafka-node": "git+ssh://git@github.com/thynson/kafka-node.git#803555ebb0a774d53a294995e9ef97dc07ac60ed",
+    "ts-jest": "^24.1.0",
     "typedoc": "^0.14.2",
-    "typescript": "^3.5.3"
+    "typescript": "^3.6.3"
+  },
+  "dependencies": {
+    "bluebird": "^3.7.0"
   }
 }

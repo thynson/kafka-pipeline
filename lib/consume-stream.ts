@@ -76,7 +76,7 @@ class ConsumeStream extends Transform {
   constructor(options: ConsumeOption) {
     super({
       objectMode: true,
-      highWaterMark: options.consumeConcurrency + 1
+      highWaterMark: options.consumeConcurrency
     });
     this._options = options;
 
