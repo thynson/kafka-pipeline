@@ -29,7 +29,7 @@
     "jest": "^24.9.0",
     "kafka-node": "git+ssh://git@github.com/thynson/kafka-node.git#803555ebb0a774d53a294995e9ef97dc07ac60ed",
     "ts-jest": "^24.1.0",
-    "typedoc": "^0.14.2",
+    "typedoc": "^0.15.0",
     "typescript": "^3.6.3"
   },
   "dependencies": {

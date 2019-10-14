@@ -150,8 +150,6 @@ class ConsumeStream extends Transform {
       })
       .then(() => {
         this._dequeue();
-        // Suppress Bluebird dangling promise warning, as we had tracked it manually for
-        // controlling concurrency
         return null;
       });
   }

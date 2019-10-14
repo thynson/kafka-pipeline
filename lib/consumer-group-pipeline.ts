@@ -202,7 +202,7 @@ export class ConsumerGroupPipeline {
     consumerGroup.on('error', cleanUpAndExit);
     consumerGroup.on('message', onMessage);
     // @ts-ignore
-    consumerGroup.on('done', onFetchCompleted)
+    consumerGroup.on('done', onFetchCompleted);
     consumerGroup.resume();
   }
 
