@@ -64,11 +64,15 @@
 	<div class="row">
 		<div class="col-8 col-content">
 			<div class="tsd-panel tsd-typography">
-				<h1 id="kafka-pipeline">kafka-pipeline</h1>
+				<a href="#kafka-pipeline" id="kafka-pipeline" style="color: inherit; text-decoration: none;">
+					<h1>kafka-pipeline</h1>
+				</a>
 				<p>This library provide a robust, easy to use kafka message consumer based on
 					<code>ConsumerGroup</code> from <a href="https://github.com/SOHU-Co/kafka-node">kafka-node</a> that helps you managing message offsets
 				in correct way.</p>
-				<h2 id="design-notes">Design notes</h2>
+				<a href="#design-notes" id="design-notes" style="color: inherit; text-decoration: none;">
+					<h2>Design notes</h2>
+				</a>
 				<p>The basic idea behind this library is separate consume progress and offset
 					commit into two <a href="https://nodejs.org/api/stream.html#stream_class_stream_transform">Transform</a> stream, namely <code>ConsumeStream</code> and
 					<code>CommitStream</code>, messages will be consumed by <code>ConsumeStream</code>
@@ -94,11 +98,15 @@
 					your apps need to be idempotency when handle message, this library take the
 					best efforts to minimize the duplication of messages, unless error occurred
 				that prevent the offset to be committed, it shall NEVER duplicate any message.</p>
-				<h2 id="installation">Installation</h2>
+				<a href="#installation" id="installation" style="color: inherit; text-decoration: none;">
+					<h2>Installation</h2>
+				</a>
 				<p><a href="https://github.com/SOHU-Co/kafka-node">kafka-node</a> is A peer dependency of this library, you need to install it
 				together with kafka-pipeline.</p>
 				<pre><code class="language-bash">npm install kafka-pipeline kafka-node</code></pre>
-				<h2 id="usage">Usage</h2>
+				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
+					<h2>Usage</h2>
+				</a>
 				<pre><code class="language-javascript"><span class="hljs-keyword">const</span> {ConsumerGroupPipeline} = <span class="hljs-built_in">require</span>(<span class="hljs-string">'kafka-pipeline'</span>);
 
 <span class="hljs-keyword">const</span> consumerPipeline = <span class="hljs-keyword">new</span> ConsumerGroupPipeline({
@@ -106,10 +114,10 @@
   <span class="hljs-attr">messageConsumer</span>: <span class="hljs-keyword">async</span> (message) =&gt; {
     <span class="hljs-comment">//...</span>
   },
-  <span class="hljs-comment">// A optional callback function handled messages failed to consume by </span>
-  <span class="hljs-comment">// `messageConsumer`. When error raised in `messageConsumer`, </span>
+  <span class="hljs-comment">// A optional callback function handled messages failed to consume by</span>
+  <span class="hljs-comment">// `messageConsumer`. When error raised in `messageConsumer`,</span>
   <span class="hljs-comment">// consumerPipeline will be closed if you don't provide `failedMessageConsumer`,</span>
-  <span class="hljs-comment">// or `failedMessageConsumer` also raise an exception </span>
+  <span class="hljs-comment">// or `failedMessageConsumer` also raise an exception</span>
   failedMessageConsumer: <span class="hljs-keyword">async</span> (exception, message) =&gt; {
     <span class="hljs-comment">//...</span>
   },
@@ -121,7 +129,7 @@
     <span class="hljs-comment">// Properties of this object will be pass to ConsumerGroup</span>
     <span class="hljs-comment">// except that some of them could be override by ConsumerGroupPipeline</span>
     <span class="hljs-comment">// See reference of its setting at https://github.com/SOHU-Co/kafka-node</span>
-    <span class="hljs-comment">// </span>
+    <span class="hljs-comment">//</span>
   }
 });
 
@@ -129,16 +137,30 @@ consumerPipeline.start();
 
 <span class="hljs-comment">// The following code is for demo purpose only, not suggesting you to do this</span>
 <span class="hljs-comment">// in production code. But to avoid message duplication you need to ensure your</span>
-<span class="hljs-comment">// app will quit in a graceful way that await the promise returned by </span>
+<span class="hljs-comment">// app will quit in a graceful way that await the promise returned by</span>
 <span class="hljs-comment">// consumerPipeline.close() is resolved, which will do the final offset commit</span>
 process.on(<span class="hljs-string">'SIGTERM'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
   consumerPipeline.close().then(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
     process.exit(<span class="hljs-number">0</span>);
   });
 });</code></pre>
-				<h2 id="license">License</h2>
+				<a href="#breaking-changes" id="breaking-changes" style="color: inherit; text-decoration: none;">
+					<h2>Breaking changes</h2>
+				</a>
+				<ul>
+					<li><p>3.0 (Upcoming): <code>consumeConcurrency</code> now limits message consumed concurrently per-partition,
+						not per-consumer, default value changed to 1</p>
+					</li>
+					<li><p>2.0: Migrated to Typescript</p>
+					</li>
+				</ul>
+				<a href="#license" id="license" style="color: inherit; text-decoration: none;">
+					<h2>License</h2>
+				</a>
 				<p>ISC License, see <code>LICENSE</code> file.</p>
-				<h2 id="todo">TODO</h2>
+				<a href="#todo" id="todo" style="color: inherit; text-decoration: none;">
+					<h2>TODO</h2>
+				</a>
 				<ol>
 					<li>More test</li>
 					<li>Consider support HighLevelConsumer?</li>
@@ -187,6 +209,7 @@ process.on(<span class="hljs-string">'SIGTERM'</span>, <span class="hljs-functio
 				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
 				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
@@ -235,7 +258,7 @@ process.on(<span class="hljs-string">'SIGTERM'</span>, <span class="hljs-functio
 	</div>
 </footer>
 <div class="container tsd-generator">
-	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
 <script src="assets/js/main.js"></script>
