@@ -72,7 +72,6 @@ export class ConsumerGroupPipeline {
   private _rebalanceCallback?: (e?: Error) => unknown;
   private _consumer?: ConsumerGroup;
   private _consumingPromise?: Promise<unknown>;
-  private _commitStream?: CommitStream;
   private _consumeStreamMap?: Map<number, ConsumeStream> = new Map();
 
   /**
@@ -104,22 +103,44 @@ export class ConsumerGroupPipeline {
   private _pipelineSession(consumerGroup: ConsumerGroup, callback: (e?: Error) => unknown) {
 
     const queuedMessages = [];
-    let partitionedQueuedMessage: Map<number, Message[]>;
+    let partitionedQueuedMessage: Map<number, Message[]> = new Map();
 
     const partitionFulledMap = new Map<number, boolean>();
 
-    const onFetchCompleted = () => {
-      consumerGroup.pause();
 
-      partitionedQueuedMessage = queuedMessages.reduce((result, message: Message) => {
-        let currentPartitionQueue = result.get(message.partition);
+    const commitFunction = (offsets) => {
+      return new Promise((done, fail) => {
+        if (offsets.length === 0) {
+          return done();
+        }
+        return consumerGroup.sendOffsetCommitRequest(offsets.map((offset) => {
+          return Object.assign({}, {metadata: 'm'}, offset, {metadata: 'm'});
+        }), (commitError) => {
+          if (commitError) {
+            return fail(commitError);
+          }
+          return done();
+        });
+      });
+    };
+    const commitStream = new CommitStream({
+      commitFunction,
+      commitInterval: this._options.commitInterval
+    }).resume();
+    const onFetchCompleted = () => {
+      if (queuedMessages.length === 0) {
+        return;
+      }
+      consumerGroup.pause();
+      queuedMessages.splice(0).forEach((message: Message) => {
+
+        let currentPartitionQueue = partitionedQueuedMessage.get(message.partition);
         if (!currentPartitionQueue) {
           currentPartitionQueue = [];
-          result.set(message.partition, currentPartitionQueue);
+          partitionedQueuedMessage.set(message.partition, currentPartitionQueue);
         }
         currentPartitionQueue.push(message);
-        return result;
-      }, new Map<number, Message[]>());
+      });
       partitionedQueuedMessage.forEach((messages, partition) => {
         pumpQueuedMessage(partition);
       });
@@ -134,10 +155,10 @@ export class ConsumerGroupPipeline {
         .removeListener('message', onMessage)
         .removeListener('done', onFetchCompleted)
         .removeListener('error', cleanUpAndExit);
-      this._commitStream.removeListener('error', cleanUpAndExit);
+      commitStream.removeListener('error', cleanUpAndExit);
       callback(e);
     };
-    this._commitStream.addListener('error', cleanUpAndExit);
+    commitStream.addListener('error', cleanUpAndExit);
 
     const onMessage = (message) => {
       queuedMessages.push(message);
@@ -168,7 +189,7 @@ export class ConsumerGroupPipeline {
         partitionFulledMap.set(partition, false);
         pumpQueuedMessage(partition);
       }).on('data', (message) => {
-        this._commitStream.write(message);
+        commitStream.write(message);
       }).resume();
       this._consumeStreamMap.set(partition, consumeStream);
       partitionFulledMap.set(partition, false);
@@ -191,7 +212,7 @@ export class ConsumerGroupPipeline {
           return;
         }
       }
-      for (const [partition, queue] of partitionedQueuedMessage.entries()) {
+      for (const queue of partitionedQueuedMessage.values()) {
         if (queue.length > 0) {
           return;
         }
@@ -278,12 +299,13 @@ export class ConsumerGroupPipeline {
       process.nextTick(() => {
         // This function will finally triggered 'end' event of commit transform stream
         this._consumeStreamMap.forEach((consumeStream)=> consumeStream.end());
+        this._consumeStreamMap = new Map();
       });
     };
 
 
     return new Promise((resolve, reject) => {
-      const consumerGroup = this._consumer = new ConsumerGroup(Object.assign({},
+      this._consumer = new ConsumerGroup(Object.assign({},
         defaultConsumerGroupOption,
         this._options.consumerGroupOption,
         {
@@ -294,26 +316,6 @@ export class ConsumerGroupPipeline {
         }
       ), this._options.topic);
 
-      const commitFunction = (offsets) => {
-        return new Promise((done, fail) => {
-          if (offsets.length === 0) {
-            return done();
-          }
-          return consumerGroup.sendOffsetCommitRequest(offsets.map((offset) => {
-            return Object.assign({}, {metadata: 'm'}, offset, {metadata: 'm'});
-          }), (commitError) => {
-            if (commitError) {
-              return fail(commitError);
-            }
-            return done();
-          });
-        });
-      };
-
-      this._commitStream = new CommitStream({
-        commitFunction,
-        commitInterval: this._options.commitInterval
-      }).resume();
 
       const onErrorBeforeConnect = (e) => {
         // @ts-ignore
