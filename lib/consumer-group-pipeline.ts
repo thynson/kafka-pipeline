@@ -181,7 +181,6 @@ export class ConsumerGroupPipeline {
         cleanUpAndExit(e);
       }).once('end', ()=>{
         this._consumeStreamMap.delete(partition);
-        consumeStream.removeAllListeners();
         if (this._consumeStreamMap.size === 0) {
           cleanUpAndExit();
         }
@@ -299,7 +298,6 @@ export class ConsumerGroupPipeline {
       process.nextTick(() => {
         // This function will finally triggered 'end' event of commit transform stream
         this._consumeStreamMap.forEach((consumeStream)=> consumeStream.end());
-        this._consumeStreamMap = new Map();
       });
     };
 
